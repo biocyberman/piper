@@ -94,7 +94,7 @@ object Sthlm2UUSNP extends App {
 
     try {
       Files.createLink(Paths.get(targetFile.getAbsolutePath()),
-        Paths.get(sampleInfo.fastq.getPath()))
+        Paths.get(sampleInfo.seqfile.getPath()))
     } catch {
       case e: FileAlreadyExistsException =>
         System.err.println(
@@ -115,7 +115,7 @@ object Sthlm2UUSNP extends App {
     date: String,
     flowCellId: String,
     index: String,
-    fastq: File,
+    seqfile: File,
     read: Int)
 
   /**
@@ -165,7 +165,7 @@ object Sthlm2UUSNP extends App {
           date = date,
           flowCellId = flowcellId,
           index = m.group(2),
-          fastq = file,
+          seqfile = file,
           read = m.group(4).toInt)
       }).toSeq
 
