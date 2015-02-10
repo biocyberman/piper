@@ -56,7 +56,7 @@ download_and_install_gatk()
   mvn package
   check_errs $? "gatk compilation FAILED"
   mkdir ../lib
-  cp target/* ../lib/
+  cp target/Queue*.jar ../lib/
   cd ..
   rm -rf $GATK_INSTALL_DIR
 }
