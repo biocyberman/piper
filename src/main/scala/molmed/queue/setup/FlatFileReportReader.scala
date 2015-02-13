@@ -2,7 +2,7 @@ package molmed.queue.setup
 
 import scala.collection.immutable.Map
 import java.io.File
-import org.apache.commons.lang.NotImplementedException
+import org.apache.commons.lang3.NotImplementedException
 import scala.io.Source
 
 /**

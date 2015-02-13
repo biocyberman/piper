@@ -22,6 +22,7 @@ object PiperBuild extends Build {
             "piper" -> "org.broadinstitute.gatk.queue.QCommandLine",
             "setupFileCreator" -> "molmed.apps.setupcreator.SetupFileCreator",
             "SolidSetupFileCreator" -> "molmed.apps.setupcreator.SolidSetupFileCreator",
+            "SolidLinkXSQFiles" -> "molmed.apps.SolidLinkXSQFiles",
             "sthlm2UUSNP" -> "molmed.apps.Sthlm2UUSNP",
             "reportParser" -> "molmed.apps.ReportParser"))
           ++ dependencies)
@@ -33,14 +34,15 @@ object PiperBuild extends Build {
   //libraryDependencies += "org.hdfgroup" % "hdf-java" % "2.6.1",
 
   val dependencies = Seq(
-    libraryDependencies += "commons-lang" % "commons-lang" % "2.5",
-    libraryDependencies += "commons-io" % "commons-io" % "2.1",
+    libraryDependencies += "org.apache.commons" % "commons-lang3" % "3.3.2",
+    libraryDependencies += "commons-io" % "commons-io" % "2.4",
     libraryDependencies += "org.testng" % "testng" % "5.14.1",
     libraryDependencies += "net.java.dev.jets3t" % "jets3t" % "0.8.1",
     libraryDependencies += "org.simpleframework" % "simple-xml" % "2.0.4",
     libraryDependencies += "com.github.scopt" %% "scopt" % "3.2.0",
-    libraryDependencies += "org.scalatest" % "scalatest_2.10" % "2.2.1" % "test",
-    //libraryDependencies += "org.slf4j" % "slf4j-log4j12" % "1.7.10",
-    libraryDependencies += "org.slf4j" % "slf4j-api" % "1.6.0"
+    libraryDependencies += "org.scalatest" % "scalatest_2.10" % "2.2.1" % "test"
+  // Following two dependencies are provided in Queue.jar already
+//    libraryDependencies += "org.slf4j" % "slf4j-log4j12" % "1.7.5",
+//    libraryDependencies += "org.slf4j" % "slf4j-api" % "1.7.5"
     )
 }

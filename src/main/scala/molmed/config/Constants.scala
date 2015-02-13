@@ -26,8 +26,14 @@ object Constants {
   val OMNI = "omni"
   val MILLS = "mills"
   val THOUSAND_GENOMES = "thousandGenomes"
-  val SNP_EFF_REFERENCE = "snpEffReference"  
-    
+  val SNP_EFF_REFERENCE = "snpEffReference"
+
+  val NOVOALIGNCS = "novoalignCS"
+  val NOVOSORT = "novosort"
+  val NOVOALIGN = "novoalign"
+  val NOVOINDEX = "novoindex"
+  val NVOALNCSREF = "novoalignCSReference"
+
 
   val unknown = "unknown"
 }

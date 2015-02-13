@@ -98,7 +98,7 @@ echo "########################################################"
 echo "Compile, package and install Piper"
 echo "########################################################"
 
-sbt pack && make -C target/pack/ install PREFIX=$INSTALL_PREFIX
+sbt/bin/sbt pack && make -C target/pack/ install PREFIX=$INSTALL_PREFIX
 check_errs $? "compiling and install piper failed."
 
 echo "########################################################"

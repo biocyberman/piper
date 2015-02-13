@@ -51,6 +51,26 @@
             <path>/space/system/piper_resources/snpEff_v4_1_core/scripts/snpEff</path>
             <version>4.1</version>
         </program>
+        <program>
+            <name>novoalignCS</name>
+            <path>/usr/local/bin/novoalignCS</path>
+            <version>V1.05.00</version>
+        </program>
+        <program>
+            <name>novoalign</name>
+            <path>/usr/local/bin/novoalign</path>
+            <version>V3.02.10</version>
+        </program>
+        <program>
+            <name>novosort</name>
+            <path>/usr/local/bin/novosort</path>
+            <version>V1.03.02</version>
+        </program>
+        <program>
+            <name>novoindex</name>
+            <path>/usr/local/bin/novoindex</path>
+            <version>3.2</version>
+        </program>
     </programs>
     <resources>
         <resource>
@@ -90,7 +110,13 @@
         </resource>
         <resource>
             <name>snpEffReference</name>
+            <path>not/applicable</path>
             <version>GRCh37.75</version>
+        </resource>
+        <resource>
+            <name>novoalignCSReference</name>
+            <path>/space/data/resources/novoalign/human_g1k_v37_decoy.cnx</path>
+            <version>GRCh37wd</version>
         </resource>
     </resources>
 </globalConfig>

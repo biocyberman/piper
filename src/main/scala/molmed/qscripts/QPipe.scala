@@ -44,7 +44,7 @@ class QPipe extends QScript
   @Argument(doc = "Cleaning model: KNOWNS_ONLY, USE_READS or USE_SW. (Default: USE_READS)", fullName = "clean_model", shortName = "cm", required = false)
   var cleaningModel: String = "USE_READS"
 
-  @Argument(doc = "The type of sequence aligner to use. Options are NVOALIGNCS, NVOALN, BWA_MEM and BWA_ALN. (Default: NVOALIGNCS)", fullName = "seq_aligner", shortName = "alner", required = false)
+  @Argument(doc = "The type of sequence aligner to use. Options are NVOALIGNCS, NVOALN, BWA_MEM and BWA_ALN. (Default: NVOALIGNCS)", fullName = "seq_aligner", shortName = "seqalner", required = false)
   var seqAlignerType: String = "NVOALNCS"
 
   @Argument(doc = "Base path for all output working files.", fullName = "output_directory", shortName = "outputDir", required = false)
@@ -123,6 +123,7 @@ class QPipe extends QScript
   @Argument(doc = "Run the pipeline in test mode only", fullName = "test_mode", shortName = "test", required = false)
   var testMode: Boolean = false
 
+
   /**
    * **************************************************************************
    * Helper functions
@@ -158,14 +159,23 @@ class QPipe extends QScript
   }
 
   /**
-   * Run alignments
+   *
+   * @param samples samples to do alignment
+   * @param uppmaxConfig
+   * @param alignmentOutputDir
+   * @param otherResources  A map of resource names to paths, versions, etc from global config.
+   * @return  A map of sample names to BAM files for each sample.
    */
-  def runAlignments(samples: Map[String, Seq[SampleAPI]],
-                    uppmaxConfig: UppmaxConfig,
-                    alignmentOutputDir: File): Map[String, Seq[File]] = {
+  def runAlignments(samples: Map[String, Seq[SampleAPI]], uppmaxConfig: UppmaxConfig,
+                    alignmentOutputDir: File, otherResources: ResourceMap = Map()): Map[String, Seq[File]] = {
 
     val aligner: Option[AlignerOption] = decideAlignerType(seqAlignerType)
-    val alignmentUtils = new AlignmentUtils(this, alignerPath, nbrOfThreads, samtoolsPath, projectName, uppmaxConfig)
+
+    logger.debug("aligner type: " + aligner.toString)
+    val alignmentUtils = new AlignmentUtils(this, alignerPath, nbrOfThreads, samtoolsPath,
+      projectName, uppmaxConfig, otherResources = otherResources)
+
+    logger.debug("ResourceMap size: " + otherResources.size)
     val sampleNamesAndalignedBamFiles = samples.values.flatten.map(sample =>
       (sample.getSampleName,
         alignmentUtils.align(
@@ -377,10 +387,13 @@ class QPipe extends QScript
     val samples: Map[String, Seq[SampleAPI]] = setupReader.getSamples()
     // NOTE: assumes all samples are to be aligned to the same reference.
     val reference = samples.head._2(0).getReference()
-
     // Get default paths to resources from global config xml
     val resourceMap =
       this.configureResourcesFromConfigXML(this.globalConfig, notHuman)
+
+    logger.debug("ResourceMap size when initialized: " + resourceMap.size)
+
+    logger.debug("Working with global config file: " + globalConfig.getAbsolutePath)
 
     val generalUtils = new GeneralUtils(projectName, uppmaxConfig)
 
@@ -402,7 +415,9 @@ class QPipe extends QScript
       runAlignments(
         _: Map[String, Seq[SampleAPI]],
         uppmaxConfig,
-        alignmentOutputDir)
+        alignmentOutputDir,
+        otherResources = resourceMap
+      )
 
     val mergedAlignments =
       runMergeBySample(

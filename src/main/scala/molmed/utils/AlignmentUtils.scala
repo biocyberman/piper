@@ -2,6 +2,7 @@ package molmed.utils
 
 import java.io.File
 
+import molmed.utils._
 import org.broadinstitute.gatk.queue.QScript
 
 import org.broadinstitute.gatk.queue.extensions.gatk._
@@ -13,6 +14,8 @@ import molmed.queue.setup.InputSeqFileContainer
 import molmed.queue.setup.SampleAPI
 import molmed.utils.GeneralUtils.checkReferenceIsBwaIndexed
 import scala.collection.JavaConversions._
+import molmed.config.FileVersionUtilities._
+import molmed.config.Constants
 
 /**
  * Base class for alignment workflows.
@@ -22,7 +25,8 @@ abstract class AligmentUtils(projectName: Option[String], uppmaxConfig: UppmaxCo
 /**
  * Holds classes and functions used for aligning with tophat
  */
-class TophatAligmentUtils(tophatPath: String, tophatThreads: Int, projectName: Option[String], uppmaxConfig: UppmaxConfig) extends AligmentUtils(projectName, uppmaxConfig) {
+class TophatAligmentUtils(tophatPath: String, tophatThreads: Int, projectName: Option[String],
+                          uppmaxConfig: UppmaxConfig) extends AligmentUtils(projectName, uppmaxConfig) {
 
   /**
    * @param qscript						the qscript to in which the alignments should be used (usually "this")
@@ -146,7 +150,9 @@ case object NvoAlnCS extends AlignerOption
 /**
  * Utility classes and functions for running bwa
  */
-class AlignmentUtils(qscript: QScript, alignerPath: String, numThreads: Int, samtoolsPath: String, projectName: Option[String], uppmaxConfig: UppmaxConfig) extends AligmentUtils(projectName, uppmaxConfig) {
+class AlignmentUtils(qscript: QScript, alignerPath: String, numThreads: Int, samtoolsPath: String,
+                     projectName: Option[String], uppmaxConfig: UppmaxConfig,
+                     otherResources: ResourceMap = Map()) extends AligmentUtils(projectName, uppmaxConfig) {
 
   /**
    * @param qscript						the qscript to in which the alignments should be used (usually "this")
@@ -195,7 +201,8 @@ class AlignmentUtils(qscript: QScript, alignerPath: String, numThreads: Int, sam
           reference = reference,
           intermediate = isIntermediateAlignment,
           isPairEnd = fastqs.hasPair,
-          libName = fastqs.sampleName.replaceFirst("\\..*$", "")
+          libName = fastqs.sampleName.replaceFirst("\\..*$", ""),
+          readGroupInfo = readGroupInfo
         ))
 
       }
@@ -333,26 +340,46 @@ class AlignmentUtils(qscript: QScript, alignerPath: String, numThreads: Int, sam
   // Perform aligment of color-space input files in BAM, XSQ format.
   // This expect to work with only one library at a time.
   // TODO: Check if need support for CSFASTQ format 
-  case class novoalignCS(inputFile: File, outBam: File, reference: File, intermediate: Boolean = false,
-                         isPairEnd:Boolean = false, libName: String) extends CommandLineFunction {
+  case class novoalignCS(inputFile: File, outBam: File,
+                         reference: File,
+                         intermediate: Boolean = false,
+                         isPairEnd: Boolean = false,
+                         libName: String,
+                         readGroupInfo: String = "") extends CommandLineFunction {
+
+    logger.info("resourceMap size: " + otherResources.size)
+
     @Input(doc = "input file(s) to be aligned") var input = inputFile
     @Input(doc = "reference") var ref = reference
     @Output(doc = "output bam file") var bam = outBam
-    @Input(doc = "path to novosort for sort and index bam files") var novosort = "/usr/local/bin/novosort"
+
+    @Argument(doc = "path to novosort for sort and index bam files")
+    var novosort = getPathFromKey(otherResources, Constants.NOVOSORT)
+
+    @Argument(doc = "path to novoalignCS for aligning of Colospace data in xsq file")
+    var novoalignCS = getPathFromKey(otherResources, Constants.NOVOALIGNCS)
+
+    @Argument(doc = "Indexed reference file for use with novoalignCS")
+    var novoalignCSRef = getPathFromKey(otherResources, Constants.NVOALNCSREF)
+
+    @Argument(doc = "Other commandline argument for NovoalignCS")
+    var novoOtherParams = " -o FullNW -o SAM -r Random -k -t 20,2.5 -p 5,15 0.35,10"
 
     // The output from this is a samfile, which can be removed later
     this.isIntermediate = intermediate
 
-    val novoOtherParams = "-o FullNW -o SAM -r Random -k -t 20,2.5 -p 5,15 0.35,10"
+    val unsorted_bam = bam.getAbsolutePath.replace(".bam", "_unsorted.bam")
 
     // We actually use novosort here
-    def sortAndIndex(alignedBam: File): String = " | " + samtoolsPath + " view -Su -F4 - | " +
-      novosort + " -i -c" + numThreads + " -m 7G " +
-      " -o " + alignedBam
+    def sortAndIndex(inputBamPath: String): String = " && " + novosort + " -i -c " + numThreads +
+      " -m 7G  -t ./.queue/tmp --rg " + readGroupInfo + " -o " + bam + " " + inputBamPath
+
+    val captureBam = " | " +  samtoolsPath + " view -Sb -F4 - >" + unsorted_bam
 
     def commandLine = if (isPairEnd) { "not implemented yet"} else {
-      alignerPath + " -d " + ref + " -f " + input + "-F 'XSQ' " + libName + novoOtherParams +
-        " -c " + numThreads + "2>" + bam.getAbsolutePath.replace(".bam", ".log") + sortAndIndex(bam)
+      novoalignCS + " -d " + novoalignCSRef + " -f " + input + " -F 'XSQ' " + libName + novoOtherParams +
+        " -c " + numThreads + " 2>" + bam.getAbsolutePath.replace(".bam", ".log") + captureBam +
+        sortAndIndex(unsorted_bam)
     }
     override def jobRunnerJobName = projectName.get + "_nvoalnCS"
   }

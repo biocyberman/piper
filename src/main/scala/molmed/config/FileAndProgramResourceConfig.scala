@@ -47,6 +47,9 @@ trait FileAndProgramResourceConfig {
   @Argument(doc = "snpEff reference to use", fullName = "snpEff_reference", shortName = "snpEffRef", required = false)
   var snpEffReference: String = _
 
+  @Argument(doc = "Indexed reference file for use with novoalignCS", fullName = "novoalignCSReference", shortName = "nvoalnCSRef", required = false)
+  var novoalignCSReference: File = _
+
   /**
    * Paths to programs
    */
@@ -82,6 +85,18 @@ trait FileAndProgramResourceConfig {
   @Argument(doc = "The path to snpEff config", fullName = "path_to_snpeff_config", shortName = "snpEffConf", required = false)
   var snpEffConfigPath: File = _
 
+  @Argument(doc = "The path to novoalignCS program", fullName = "path_to_novoalignCS", shortName = "novoalignCS", required = false)
+  var novoalignCS: File = _
+
+  @Argument(doc = "The path to novoalign program", fullName = "path_to_novoalign", shortName = "novoalign", required = false)
+  var novoalign: File = _
+
+  @Argument(doc = "The path to novosort program", fullName = "path_to_novosort", shortName = "novosort", required = false)
+  var novosort: File = _
+
+  @Argument(doc = "The path to novoindex program", fullName = "path_to_novoindex", shortName = "novoindex", required = false)
+  var novoindex: File = _
+
   /**
    * Implicitly convert any File to Option File, as necessary.
    */
@@ -102,87 +117,15 @@ trait FileAndProgramResourceConfig {
     doNotLoadDefaultResourceFiles: Boolean = false): ResourceMap = {
 
     /**
-     * This trait is used to make sure that both programs
-     * and file resources can be managed by the same code
-     * downstream once they've been extended with this trait.
-     */
-    trait NameVersionAndPath {
-      def getName(): String
-      def getPath(): String
-      def getVersion(): String
-    }
-
-    /**
-     * Transform list of resources (with name and path) to a map from the
-     * resource name to the file(s) associated with the resource.
-     * @param 	list	A list of resources which have both name and path
-     * @return A map with resource names as keys and file resources as values
-     */
-    def transformToNamePathMap[T](list: Seq[T with NameVersionAndPath]): ResourceMap = {
-      list.groupBy(x => x.getName()).
-        mapValues(x =>
-          Some(x.map(f =>
-            new VersionedFile(new File(f.getPath), Some(f.getVersion()))).toSeq)).
-        withDefaultValue(None)
-    }
-
-    /**
-     * Extract a file for a certain resource. Note that getFileSeqFromKey should be used
-     * if you are looking a resource with multiple files.
-     * @param 	map		from the resource name to the file relating to that resource.
-     * @param 	key		the key to look for
-     * @throws IllegalArgumentException if one tries to look for a key that is no present.
-     * @throws AssertionError if there is multiple hits for this key.
-     * @returns The file related to the key.
-     */
-    def getFileFromKey(map: ResourceMap, key: String): File = {
-      val value = map(key).
-        getOrElse(
-          throw new IllegalArgumentException("Couldn't find: \"" + key + " \" key in " + xmlFile + "."))
-
-      assert(value.length == 1, "Tried to get a single path for key: \"" + key + "\" but found multiple hits.")
-      value.head
-    }
-
-    /**
-     * Extract the file version from the specified resource key.
-     * @param map	from the resource name to the versioned file relating to that resource.
-     * @param key	the key to look for
-     * @throws IllegalArgumentException if one tries to look for a key that is no present.
-     * @throws AssertionError if there is multiple hits for this key.
-     * @returns The version related to the key.
-     */
-    def getVersionFromKey(map: ResourceMap, key: String): Option[String] = {
-      val value = map(key).
-        getOrElse(
-          throw new IllegalArgumentException("Couldn't find: \"" + key + " \" key in " + xmlFile + "."))
-
-      assert(value.length == 1, "Tried to get a single path for key: \"" + key + "\" but found multiple hits.")
-      value.head.version
-    }
-
-    /**
-     * Extract file(s) for a certain resource.
-     * @param 	map		from the resource name to the file(s) relating to that resource.
-     * @param 	key		the key to look for
-     * @throws IllegalArgumentException if one tries to look for a key that is no present.
-     * @throws AssertionError if there is multiple hits for this key.
-     * @returns The file related to the key.
-     */
-    def getFileSeqFromKey(map: ResourceMap, key: String): Seq[VersionedFile] = {
-      val value = map(key).
-        getOrElse(
-          throw new IllegalArgumentException("Couldn't find: \"" + key + " \" key in " + xmlFile + "."))
-      value
-    }
-
-    /**
      * Will set all file resources specified in the config,
      * but will not override them if they have been setup via the
      * commandline.
      * @param	config	The GlobalConfig instance containing all paths.
      * @retuns Unit
      */
+
+    println("Working with global config file: "+ xmlFile.get.getAbsolutePath)
+
     def setFileResources(config: GlobalConfig): ResourceMap = {
 
       val resources = config.getResources().getResource().map(f => {
@@ -215,6 +158,9 @@ trait FileAndProgramResourceConfig {
 
       if (this.snpEffReference == null)
         this.snpEffReference = getVersionFromKey(resourceNameToPathsMap, Constants.SNP_EFF_REFERENCE).get
+
+      if (this.novoalignCSReference == null)
+        this.novoalignCSReference = getFileFromKey(resourceNameToPathsMap, Constants.NVOALNCSREF).get
 
       resourceNameToPathsMap
     }
@@ -262,6 +208,15 @@ trait FileAndProgramResourceConfig {
 
       if (this.snpEffPath == null)
         this.snpEffPath = getFileFromKey(programNameToPathsMap, Constants.SNP_EFF)
+
+      if (this.novoalignCS == null)
+        this.novoalignCS = getFileFromKey(programNameToPathsMap, Constants.NOVOALIGNCS)
+
+      if (this.novoalign== null)
+        this.novoalign = getFileFromKey(programNameToPathsMap, Constants.NOVOALIGN)
+
+      if (this.novosort == null)
+        this.novosort = getFileFromKey(programNameToPathsMap, Constants.NOVOSORT)
 
       programNameToPathsMap
 

@@ -1,5 +1,5 @@
 # Start by exporting the shared drmaa libaries to the LD_LIBRARY_PATH
-export LD_LIBRARY_PATH=/sw/apps/build/slurm-drmaa/default/lib/:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=/space/system/lib/:$LD_LIBRARY_PATH
 
 #---------------------------------------------
 # Check if we are running on uppmax or locally, and set the jobrunners and path accordingly
@@ -129,8 +129,10 @@ function final_clean_up {
     if [ ! -d "reports" ]; then
         mkdir "reports"
     fi
-
-    mv *.jobreport.* reports/
+    for f in *.jobreport.*; do {
+         mv  "${f}" reports/
+    }
+    done
 
     # Remove the file temporary directory - otherwise it will fill up glob. And all the files which are required for
     # the pipeline to run are written to the pipeline directory.

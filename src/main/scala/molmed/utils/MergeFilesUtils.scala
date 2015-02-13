@@ -13,7 +13,7 @@ class MergeFilesUtils(qscript: QScript, projectName: Option[String], uppmaxConfi
 
   /**
    * Merge the bam file by there sample names.
-   * @param sampleNamesAndfiles		A map with the sample names as keys and the files associated with she sample as values
+   * @param sampleNameAndFiles		A map with the sample names as keys and the files associated with she sample as values
    * @param	outputDir				The dir to output to
    */
   def mergeFilesBySampleName(sampleNameAndFiles: Map[String, Seq[File]], outputDir: File, asIntermediate: Boolean = false): Seq[File] = {

@@ -4,7 +4,7 @@ import molmed.queue.setup.SampleAPI
 import molmed.queue.setup.InputSeqFileContainer
 import java.io.File
 import molmed.queue.setup.ReadGroupInformation
-import org.apache.commons.lang.NotImplementedException
+import org.apache.commons.lang3.NotImplementedException
 
 class SampleStub(sampleName: String) extends SampleAPI{
     
@@ -18,7 +18,7 @@ class SampleStub(sampleName: String) extends SampleAPI{
     def getBwaStyleReadGroupInformationString: String = bwaReadGroupInfo
     def getTophatStyleReadGroupInformationString(): String = tophatReadgroupInfo
     def getReference: File = reference
-    def getReadGroupInformation(): ReadGroupInformation = throw new NotImplementedException()
+    def getReadGroupInformation(): ReadGroupInformation = throw new NotImplementedException("getReadGroupInformation not implemented")
     
     
     override

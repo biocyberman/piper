@@ -23,8 +23,8 @@ object SolidSetupFileCreator extends App {
                      pairedEnd: Option[Boolean] = None,
                      reference: Option[File] = None)
 
-  val parser = new OptionParser[Config]("AfMDSetupFileCreator") {
-    head("AfMDSetupFileCreator", " - A utility program to create pipeline AfMD setup xml files for Piper..")
+  val parser = new OptionParser[Config]("SolidSetupFileCreator") {
+    head("SolidSetupFileCreator", " - A utility program to create pipeline SOLiD setup xml files for Piper..")
 
     opt[File]('o', "output") required () valueName ("Output xml file.") action { (x, c) =>
       c.copy(outputFile = Some(x))

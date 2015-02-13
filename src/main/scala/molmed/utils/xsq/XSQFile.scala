@@ -1,10 +1,11 @@
 package molmed.utils.xsq
 
 import ch.systemsx.cisd.hdf5._
+import org.slf4j.{Logger, LoggerFactory}
+
 import scala.collection.JavaConversions._
 
-import org.slf4j.{LoggerFactory, Logger}
-
+// JHDF5 author: Dr. Bernd Rinn  brinn@ethz.ch
 
 /**
  * Created by vql on 29/01/15.
@@ -12,8 +13,9 @@ import org.slf4j.{LoggerFactory, Logger}
  * @param xsqFile full path to the XSQ file to read/write
  */
 class XSQFile(xsqFile: String) {
+
   final val log: Logger = LoggerFactory.getLogger(classOf[XSQFile])
-   private val xsq = HDF5Factory.openForReading(xsqFile)
+  val xsqReadHandler = HDF5Factory.openForReading(xsqFile)
 
     //  private object ReservedNames extends Enumeration {
     //    type ReservedNames = Value
@@ -25,35 +27,35 @@ class XSQFile(xsqFile: String) {
     private val runMetadataDSPath = "/RunMetadata"
     private val libraryDetailsDSPath =  runMetadataDSPath + "/LibraryDetails"
     private val libraryIndexDSPath = "/Indexing/LibraryIndex"
-    private val libraryDetails:Array[HDF5CompoundDataMap] = xsq.compound().
+    private val libraryDetails:Array[HDF5CompoundDataMap] = xsqReadHandler.compound().
       readArray(libraryDetailsDSPath, classOf[HDF5CompoundDataMap])
-    private val libraryGroupIndex = xsq.`object`().getAllGroupMembers("/").filter(r => !ReservedNames.exists(_ == r) )
+    private val libraryGroupIndex = xsqReadHandler.`object`().getAllGroupMembers("/").filter(r => !ReservedNames.exists(_ == r) )
 
     // TODO: Isn't there a better way to do this runMetadata thingie?
     val runMetadata:Map[String, Any] = Map(
-      "FileVersion" -> xsq.string().getAttr(runMetadataDSPath, "FileVersion"),
-      "FlowcellAssignment" -> xsq.int8().getAttr(runMetadataDSPath, "FlowcellAssignment"),
-      "HDFVersion" -> xsq.string().getAttr(runMetadataDSPath, "HDFVersion"),
-      "InstrumentModel" -> xsq.string().getAttr(runMetadataDSPath, "InstrumentModel"),
-      "InstrumentName" -> xsq.string().getAttr(runMetadataDSPath, "InstrumentName"),
-      "InstrumentSerial" -> xsq.string().getAttr(runMetadataDSPath, "InstrumentSerial"),
-      "InstrumentVendor" -> xsq.string().getAttr(runMetadataDSPath, "InstrumentVendor"),
-      "IsIndexingRun" -> xsq.int8().getAttr(runMetadataDSPath, "IsIndexingRun"),
-      "LaneNumber" -> xsq.int8().getAttr(runMetadataDSPath, "LaneNumber"),
-      "LibraryType" -> xsq.string().getAttr(runMetadataDSPath, "LibraryType"),
-      "Operator" -> xsq.string().getAttr(runMetadataDSPath, "Operator"),
-      "RunEndTime" -> xsq.string().getAttr(runMetadataDSPath, "RunEndTime"),
-      "RunName" -> xsq.string().getAttr(runMetadataDSPath, "RunName"),
-      "RunStartTime" -> xsq.string().getAttr(runMetadataDSPath, "RunStartTime"),
-      "SequencingSampleDescription" -> xsq.string().getAttr(runMetadataDSPath, "SequencingSampleDescription")
+      "FileVersion" -> xsqReadHandler.string().getAttr(runMetadataDSPath, "FileVersion"),
+      "FlowcellAssignment" -> xsqReadHandler.int8().getAttr(runMetadataDSPath, "FlowcellAssignment"),
+      "HDFVersion" -> xsqReadHandler.string().getAttr(runMetadataDSPath, "HDFVersion"),
+      "InstrumentModel" -> xsqReadHandler.string().getAttr(runMetadataDSPath, "InstrumentModel"),
+      "InstrumentName" -> xsqReadHandler.string().getAttr(runMetadataDSPath, "InstrumentName"),
+      "InstrumentSerial" -> xsqReadHandler.string().getAttr(runMetadataDSPath, "InstrumentSerial"),
+      "InstrumentVendor" -> xsqReadHandler.string().getAttr(runMetadataDSPath, "InstrumentVendor"),
+      "IsIndexingRun" -> xsqReadHandler.int8().getAttr(runMetadataDSPath, "IsIndexingRun"),
+      "LaneNumber" -> xsqReadHandler.int8().getAttr(runMetadataDSPath, "LaneNumber"),
+      "LibraryType" -> xsqReadHandler.string().getAttr(runMetadataDSPath, "LibraryType"),
+      "Operator" -> xsqReadHandler.string().getAttr(runMetadataDSPath, "Operator"),
+      "RunEndTime" -> xsqReadHandler.string().getAttr(runMetadataDSPath, "RunEndTime"),
+      "RunName" -> xsqReadHandler.string().getAttr(runMetadataDSPath, "RunName"),
+      "RunStartTime" -> xsqReadHandler.string().getAttr(runMetadataDSPath, "RunStartTime"),
+      "SequencingSampleDescription" -> xsqReadHandler.string().getAttr(runMetadataDSPath, "SequencingSampleDescription")
     )
 
     val isBarcoded: Boolean = runMetadata.get("IsIndexingRun").getOrElse(2).toString.toInt == 1
 
 
     private val indexingMeta = if (isBarcoded) {
-      Map("IndexKitName" -> xsq.string().getAttr("/Indexing", "IndexKitName"),
-        "IndexLength" -> xsq.int32().getAttr("/Indexing","IndexLength")
+      Map("IndexKitName" -> xsqReadHandler.string().getAttr("/Indexing", "IndexKitName"),
+        "IndexLength" -> xsqReadHandler.int32().getAttr("/Indexing","IndexLength")
       )
     }   else Map()
     /**
@@ -72,13 +74,15 @@ class XSQFile(xsqFile: String) {
 
     def getLibraries:Seq[Library] = {
       if (isBarcoded) {
-        val libraries = for {
-          l <- libraryGroupIndex
-          libName = xsq.string().getAttr("/" + l,"LibraryName")
-          indexName = xsq.string().getAttr("/" + l,"IndexName")
-          indexID = xsq.int16().getAttr("/" + l,"IndexID").toInt
-        } yield new Library(xsqFile, name = libName, indexID = Some(indexID), indexName = Some(indexName))
-        libraries.toSeq
+        val libraries = libraryGroupIndex.filter(e => !e.contains("Unassigned") && !e.contains("__DATA_TYPES__")).
+          map(l => {
+          log.debug("Library found in XSQ: {}", l)
+          val libName = xsqReadHandler.string().getAttr("/" + l, "LibraryName")
+          val indexName = xsqReadHandler.string().getAttr("/" + l, "IndexName")
+          val indexID = xsqReadHandler.int16().getAttr("/" + l, "IndexID").toInt
+          new Library(xsqFile, name = libName, indexID = Some(indexID), indexName = Some(indexName))
+        })
+        libraries
       } else {
         Seq(new Library(xsqFile, name = "DefaultLibrary"))
       }
@@ -91,5 +95,6 @@ class XSQFile(xsqFile: String) {
         println(k + " " + getLibraryIndex.get(k).get.toString)
       }
     }
+    def close = xsqReadHandler.close()
 
   }
