@@ -1,5 +1,9 @@
 target/
+Queue.jar
+GenomeAnalysisTK.jar
 *.jar
+!sbt/bin/sbt-launch.jar
+!sis-jhdf5-batteries_included.jar
 .classpath
 .project
 *.iml
