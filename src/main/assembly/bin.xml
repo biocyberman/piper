@@ -24,8 +24,8 @@
             <outputDirectory>resources</outputDirectory>
         </fileSet>
         <fileSet>
-            <directory>${project.basedir}/workflows</directory>
-            <outputDirectory>workflows</outputDirectory>
+            <directory>${project.basedir}/config</directory>
+            <outputDirectory>config</outputDirectory>
         </fileSet>
         <fileSet>
             <directory>${project.build.directory}/piper-assemble/bin</directory>

@@ -89,8 +89,8 @@ piper -S ${SCRIPTS_DIR}/QPipe.scala \
 	      --gatk_interval_file ${INTERVALS} \
 	      --bed_interval_file ${BED_INTERVALS} \
 	      --global_config ${_THIS_SCRIPT_LOCATION}/uppmax_global_config.xml \
-	      --number_of_threads 12 \
-	      --scatter_gather 10 \
+	      --number_of_threads 24 \
+	      --scatter_gather 20 \
 	      --disableJobReport \
 	      -jobRunner ${JOB_RUNNER} \
 	      -jobNative "${JOB_NATIVE_ARGS}" \
