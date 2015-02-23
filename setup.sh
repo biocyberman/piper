@@ -21,6 +21,21 @@ LIB_PATH=${3:-/sw/apps/build/slurm-drmaa/default/lib}
 # Put anything at fourth positional parameter will skip download and compile GATK
 DONT_COMPILE_GATK=${4}
 
+prepare_maven_deps(){
+# Prepare library dependencies for maven
+ mvn install:install-file -Dfile=lib/sis-jhdf5-batteries_included.jar -DgroupId=ch.systemsx.cisd \
+ -DartifactId=jhdf5 -Dversion=14.12 -Dpackaging=jar
+
+ mvn install:install-file -Dfile=lib/sis-jhdf5-javadoc.zip -DgroupId=ch.systemsx.cisd \
+  -DartifactId=jhdf5 -Dversion=14.12 -Dpackaging=zip -Dclassifier=javadoc
+
+ mvn install:install-file -Dfile=lib/sis-jhdf5-src.zip -DgroupId=ch.systemsx.cisd \
+ -DartifactId=jhdf5 -Dversion=14.12 -Dpackaging=zip -Dclassifier=sources
+
+}
+
+#prepare_maven_deps
+
 check_errs()
 {
   # Function. Parameter 1 is the return code
@@ -55,10 +70,7 @@ download_and_install_gatk()
 
   mvn package
   check_errs $? "gatk compilation FAILED"
-  mkdir ../lib
-  cp target/Queue*.jar ../lib/
-  cd ..
-  rm -rf $GATK_INSTALL_DIR
+  mvn install
 }
 
 echo "########################################################"
@@ -98,22 +110,41 @@ echo "########################################################"
 echo "Compile, package and install Piper"
 echo "########################################################"
 
-sbt/bin/sbt pack && make -C target/pack/ install PREFIX=$INSTALL_PREFIX
+#mvn clean package
+
+install_piper(){
+    # Prepare directory structure
+    install -d $INSTALL_PREFIX/Piper
+    BINARY_PACK=$(ls target/piper*.tar.bz2)
+    PROG_NAME=${BINARY_PACK#target/}
+    PROG_NAME=${PROG_NAME%-bin.tar.bz2}
+    echo "Installing ${PROG_NAME} to ${INSTALL_PREFIX}"
+    tar xjf $BINARY_PACK -C $INSTALL_PREFIX/Piper
+    cd $INSTALL_PREFIX && ln -sfn Piper/$PROG_NAME ./current
+    ln -snf current/bin bin
+    ln -snf current/lib lib
+    ln -snf current/workflows workflows
+    cd -
+
+}
+
+install_piper
+
 check_errs $? "compiling and install piper failed."
 
 echo "########################################################"
 echo "Copy workflows, qscripts and globalConfig to install location"
 echo "########################################################"
-cp -rv workflows $INSTALL_PREFIX/
+cp -rv ./config/${DIST}/workflows/* $INSTALL_PREFIX/current/workflows/
 check_errs $? "copying workflows failed."
 
-cp -rv --dereference qscripts $INSTALL_PREFIX/
+cp -rv --dereference qscripts $INSTALL_PREFIX/current/
 check_errs $? "copying qscripts failed."
 
-cp -rv ./config/${DIST}/globalConfig.* ./config/${DIST}/uppmax_global_config.xml $INSTALL_PREFIX/workflows/
+cp -rv ./config/${DIST}/globalConfig.* ./config/${DIST}/uppmax_global_config.xml $INSTALL_PREFIX/current/workflows/
 check_errs $? "copying globalConfig.sh failed."
 
-cp -rv ./config/${DIST}/globalConfig.xml $INSTALL_PREFIX/workflows/
+cp -rv ./config/${DIST}/globalConfig.xml $INSTALL_PREFIX/current/workflows/
 check_errs $? "copying globalConfig.xml failed."
 
 # Red text - making people notice instructions since pre-school!

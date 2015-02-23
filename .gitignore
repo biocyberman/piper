@@ -7,3 +7,4 @@ GenomeAnalysisTK.jar
 .classpath
 .project
 *.iml
+dependency-reduced-pom.xml
