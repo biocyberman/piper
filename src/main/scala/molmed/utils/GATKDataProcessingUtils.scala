@@ -75,13 +75,13 @@ class GATKDataProcessingUtils(
 
         if (!skipDeduplication)
           qscript.add(generalUtils.dedup(cleanedBam, dedupedBam, metricsFile),
-            cov(dedupedBam, preRecalFile, defaultPlatform = ""),
+            cov(dedupedBam, preRecalFile, defaultPlatform = gatkOptions.defaultPlatform.toLowerCase),
             recal(dedupedBam, preRecalFile, recalBam),
-            cov(recalBam, postRecalFile, defaultPlatform = ""))
+            cov(recalBam, postRecalFile, defaultPlatform = gatkOptions.defaultPlatform.toLowerCase))
         else
-          qscript.add(cov(cleanedBam, preRecalFile, defaultPlatform = ""),
+          qscript.add(cov(cleanedBam, preRecalFile, defaultPlatform = gatkOptions.defaultPlatform.toLowerCase),
             recal(cleanedBam, preRecalFile, recalBam),
-            cov(recalBam, postRecalFile, defaultPlatform = ""))
+            cov(recalBam, postRecalFile, defaultPlatform = gatkOptions.defaultPlatform.toLowerCase))
 
         recalBam
       }

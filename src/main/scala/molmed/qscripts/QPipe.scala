@@ -84,7 +84,7 @@ class QPipe extends QScript
   var skipAnnotation: Boolean = false
 
   @Argument(shortName = "mbq", doc = "The minimum Phred-Scaled quality score threshold to be considered a good base in variant calling", required = false)
-  var minimumBaseQuality: Int = -1
+  var minimumBaseQuality: Int = 10
 
   @Argument(shortName = "deletions", doc = "Maximum deletion fraction allowed at a site to call a genotype in variant calling", required = false)
   var deletions: Double = -1
@@ -112,6 +112,9 @@ class QPipe extends QScript
 
   @Argument(doc = "Create the final delivery output structure (and report).", fullName = "create_delivery", shortName = "cdlvry", required = false)
   var doGenerateDelivery: Boolean = false
+
+  @Argument(doc = "Additional runtime arguments to novoalignCS/MPI, i.e. number of reads to process.", fullName = "trial_arguments", shortName = "trialargs", required = false)
+  var trialArguments: String = ""
 
   /**
    * **************************************************************************
@@ -176,13 +179,16 @@ class QPipe extends QScript
       projectName, uppmaxConfig, otherResources = otherResources)
 
     logger.debug("ResourceMap size: " + otherResources.size)
+    logger.debug("Trial Arguments: " + this.trialArguments)
+
     val sampleNamesAndalignedBamFiles = samples.values.flatten.map(sample =>
       (sample.getSampleName,
         alignmentUtils.align(
           sample,
           alignmentOutputDir,
           asIntermidiate = doMergeSamples || doDataProcessing || doVariantCalling || doGenerateDelivery,
-          aligner)))
+          aligner,
+          this.trialArguments)))
     val sampleNamesToBamMap = sampleNamesAndalignedBamFiles.groupBy(f => f._1).mapValues(f => f.map(x => x._2).toSeq)
     sampleNamesToBamMap
 
@@ -385,6 +391,8 @@ class QPipe extends QScript
      */
     val uppmaxConfig = loadUppmaxConfigFromXML(testMode = qscript.testMode)
     val samples: Map[String, Seq[SampleAPI]] = setupReader.getSamples()
+    val platform: String = setupReader.getPlatform()
+
     // NOTE: assumes all samples are to be aligned to the same reference.
     val reference = samples.head._2(0).getReference()
     // Get default paths to resources from global config xml
@@ -398,10 +406,8 @@ class QPipe extends QScript
     val generalUtils = new GeneralUtils(projectName, uppmaxConfig)
 
     val gatkOptions =
-      new GATKConfig(reference, nbrOfThreads, scatterGatherCount,
-        intervals,
-        dbSNP, Some(indels), hapmap, omni, mills, thousandGenomes,
-        notHuman)
+      new GATKConfig(reference, nbrOfThreads, scatterGatherCount, intervals, dbSNP,
+        Some(indels), hapmap, omni, mills, thousandGenomes, notHuman, defaultPlatform = "solid")
 
     // Drop the version report (this will be overwritten each time the 
     // qscript is run.

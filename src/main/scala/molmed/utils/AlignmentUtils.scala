@@ -17,6 +17,8 @@ import scala.collection.JavaConversions._
 import molmed.config.FileVersionUtilities._
 import molmed.config.Constants
 
+import org.slf4j.LoggerFactory
+
 /**
  * Base class for alignment workflows.
  */
@@ -164,16 +166,22 @@ class AlignmentUtils(qscript: QScript, alignerPath: String, numThreads: Int, sam
    * @param aligner						Aligner to use
    * @return a bam file with aligned reads.
    */
+
+  val log = LoggerFactory.getLogger(classOf[AlignmentUtils])
+
   private def performAlignment(qscript: QScript)(fastqs: InputSeqFileContainer,
                                                  readGroupInfo: String,
                                                  reference: File,
                                                  outputDir: File,
                                                  isIntermediateAlignment: Boolean = false,
-                                                 aligner: Option[AlignerOption]): File = {
+                                                 aligner: Option[AlignerOption],
+                                                 otherArguments: String = ""): File = {
 
     val saiFile1 = new File(outputDir + "/" + fastqs.sampleName + ".1.sai")
     val saiFile2 = new File(outputDir + "/" + fastqs.sampleName + ".2.sai")
     val alignedBamFile = new File(outputDir + "/" + fastqs.sampleName + ".bam")
+
+    log.debug("otherArguments: {}", otherArguments)
 
     aligner match {
       case Some(BwaAln) => {
@@ -195,15 +203,17 @@ class AlignmentUtils(qscript: QScript, alignerPath: String, numThreads: Int, sam
         }
       }
       case Some(NvoAlnCS) => {
-        qscript.add(novoalignCS(
+        val novoalgignCommand = novoalignCS(
           inputFile = fastqs.files.get(0),
           outBam = alignedBamFile,
           reference = reference,
           intermediate = isIntermediateAlignment,
           isPairEnd = fastqs.hasPair,
           libName = fastqs.sampleName.replaceFirst("\\..*$", ""),
-          readGroupInfo = readGroupInfo
-        ))
+          readGroupInfo = readGroupInfo)
+        novoalgignCommand.novoOtherParams +=  " " + otherArguments
+        log.debug("novoOtherParams: " + novoalgignCommand.novoOtherParams)
+        qscript.add(novoalgignCommand)
 
       }
       case Some(NvoAln) => throw new Exception("Aligner not implemented yet")
@@ -221,7 +231,11 @@ class AlignmentUtils(qscript: QScript, alignerPath: String, numThreads: Int, sam
    * @param aligner			Aligner to be used. Defaults to BwaMem.
    * @returns a aligned bam file.
    */
-  def align(sample: SampleAPI, outputDir: File, asIntermidiate: Boolean, aligner: Option[AlignerOption] = Some(BwaMem)): File = {
+  def align(sample: SampleAPI,
+            outputDir: File,
+            asIntermidiate: Boolean,
+            aligner: Option[AlignerOption] = Some(BwaMem),
+            otherArguments:String = ""): File = {
 
     val sampleName = sample.getSampleName()
     val fastqs = sample.getInputSeqFiles()
@@ -235,7 +249,7 @@ class AlignmentUtils(qscript: QScript, alignerPath: String, numThreads: Int, sam
     checkReferenceIsBwaIndexed(reference)
 
     // Run the alignment
-    performAlignment(qscript)(fastqs, readGroupInfo, reference, outputDir, asIntermidiate, aligner)
+    performAlignment(qscript)(fastqs, readGroupInfo, reference, outputDir, asIntermidiate, aligner, otherArguments)
   }
 
   // Find suffix array coordinates of single end reads

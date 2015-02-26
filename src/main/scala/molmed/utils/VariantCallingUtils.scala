@@ -451,6 +451,10 @@ class VariantCallingUtils(gatkOptions: GATKConfig, projectName: Option[String], 
       }
     }
 
+    if (gatkOptions.defaultPlatform.toLowerCase.equals("solid")) {
+      this.minNumBadVariants = Some(5000)
+    }
+
     this.tranches_file = t.tranchesSnpFile
     this.recal_file = t.recalSnpFile
 

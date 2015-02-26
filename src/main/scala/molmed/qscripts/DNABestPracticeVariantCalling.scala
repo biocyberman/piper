@@ -187,7 +187,8 @@ class DNABestPracticeVariantCalling extends QScript
           sample,
           alignmentOutputDir,
           asIntermidiate = doMergeSamples || doDataProcessing || doVariantCalling || doGenerateDelivery,
-          aligner)))
+          aligner,
+          otherArguments = "")))
     val sampleNamesToBamMap = sampleNamesAndalignedBamFiles.groupBy(f => f._1).mapValues(f => f.map(x => x._2).toSeq)
     sampleNamesToBamMap
 
