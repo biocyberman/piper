@@ -21,6 +21,9 @@ LIB_PATH=${3:-/sw/apps/build/slurm-drmaa/default/lib}
 # Put anything at fourth positional parameter will skip download and compile GATK
 DONT_COMPILE_GATK=${4}
 
+# Run parrallel mode for Maven. This requires Maven 3.0 onward
+MAVEN_NUM_THREADS=4
+
 prepare_maven_deps(){
 # Prepare library dependencies for maven
  mvn install:install-file -Dfile=lib/sis-jhdf5-batteries_included.jar -DgroupId=ch.systemsx.cisd \
@@ -68,7 +71,7 @@ download_and_install_gatk()
   git checkout eee94ec81f721044557f590c62aeea6880afd927
   check_errs $? "git checkout FAILED"
 
-  mvn package
+  mvn -T ${MAVEN_NUM_THREADS} package
   check_errs $? "gatk compilation FAILED"
   mvn install
 }
@@ -110,7 +113,7 @@ echo "########################################################"
 echo "Compile, package and install Piper"
 echo "########################################################"
 
-#mvn clean package
+mvn -T ${MAVEN_NUM_THREADS} clean package
 
 install_piper(){
     # Prepare directory structure
