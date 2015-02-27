@@ -73,14 +73,14 @@ class VariantCallingUtils(gatkOptions: GATKConfig, projectName: Option[String], 
               gatkOptions.intervalFile,
               config.isLowPass, config.isExome, 1)
 
-          config.qscript.add(new HaplotypeCallerBase(modifiedTarget, config.testMode, config.downsampleFraction, config.pcrFree))
+          config.qscript.add(new HaplotypeCallerBase(modifiedTarget, config.testMode, config.downsampleFraction, config.pcrFree, config.minimumBaseQuality))
           modifiedTarget.gVCFFile
         })
       config.qscript.add(new GenotypeGVCF(gVcfFiles, target, config.testMode))
     } else {
       // If the pipeline is setup to run each sample individually, 
       // output one final vcf file per sample.
-      config.qscript.add(new HaplotypeCallerBase(target, config.testMode, config.downsampleFraction, config.pcrFree))
+      config.qscript.add(new HaplotypeCallerBase(target, config.testMode, config.downsampleFraction, config.pcrFree, config.minimumBaseQuality))
       config.qscript.add(new GenotypeGVCF(Seq(target.gVCFFile), target, config.testMode))
     }
 
@@ -243,7 +243,8 @@ class VariantCallingUtils(gatkOptions: GATKConfig, projectName: Option[String], 
     t: VariantCallingTarget,
     testMode: Boolean,
     downsampleFraction: Option[Double],
-    pcrFree: Option[Boolean])
+    pcrFree: Option[Boolean],
+    minimumBaseQuality: Option[Int])
       extends HaplotypeCaller with CommandLineGATKArgs with SixteenCoreJob {
 
     if (testMode)
@@ -268,6 +269,9 @@ class VariantCallingUtils(gatkOptions: GATKConfig, projectName: Option[String], 
 
     if (!gatkOptions.dbSNP.isEmpty)
       this.D = gatkOptions.dbSNP.get
+
+    if (minimumBaseQuality.isDefined && minimumBaseQuality.get >= 0)
+      this.min_base_quality_score = Some(minimumBaseQuality.get.toByte)
 
     // Make sure we emit a GVCF
     // @TODO make this optional
