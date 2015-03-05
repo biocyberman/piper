@@ -8,3 +8,5 @@ GenomeAnalysisTK.jar
 .project
 *.iml
 dependency-reduced-pom.xml
+install_piper.sh
+installable/

@@ -20,12 +20,16 @@
 
         </fileSet>
         <fileSet>
-            <directory>${project.basedir}/src/main/resources</directory>
+            <directory>${project.basedir}/resources</directory>
             <outputDirectory>resources</outputDirectory>
         </fileSet>
         <fileSet>
             <directory>${project.basedir}/config</directory>
             <outputDirectory>config</outputDirectory>
+        </fileSet>
+        <fileSet>
+            <directory>${project.basedir}/qscripts</directory>
+            <outputDirectory>qscripts</outputDirectory>
         </fileSet>
         <fileSet>
             <directory>${project.build.directory}/piper-assemble/bin</directory>

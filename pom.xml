@@ -11,6 +11,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <scala.version>2.10.4</scala.version>
         <gatk.version>3.3</gatk.version>
+        <htsjdk.version>1.129</htsjdk.version>
         <skipTests>true</skipTests>
         <assembleDirectory>piper-assemble</assembleDirectory>
     </properties>
@@ -215,6 +216,11 @@
             <version>${gatk.version}</version>
         </dependency>
         <dependency>
+            <groupId>com.github.samtools</groupId>
+            <artifactId>htsjdk</artifactId>
+            <version>${htsjdk.version}</version>
+        </dependency>
+        <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
             <version>3.3.2</version>
@@ -261,7 +267,7 @@
             <artifactId>slf4j-api</artifactId>
             <version>1.7.10</version>
         </dependency>
-        <!--JHDF5 is installed to local maven repository by running setup.sh-->
+        <!--JHDF5 is installed to local maven repository by running build_piper.sh-->
         <dependency>
             <groupId>ch.systemsx.cisd</groupId>
             <artifactId>jhdf5</artifactId>
