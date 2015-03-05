@@ -47,15 +47,12 @@ trait FileAndProgramResourceConfig {
   @Argument(doc = "snpEff reference to use", fullName = "snpEff_reference", shortName = "snpEffRef", required = false)
   var snpEffReference: String = _
 
-  @Argument(doc = "Indexed reference file for use with novoalignCS", fullName = "novoalignCSReference", shortName = "nvoalnCSRef", required = false)
-  var novoalignCSReference: File = _
-
   /**
    * Paths to programs
    */
 
   @Input(doc = "The path to the binary of bwa (usually BAM files have already been mapped - but if you want to remap this is the option)", fullName = "path_to_aligner", shortName = "alner", required = false)
-  var alignerPath: File = _
+  var bwaPath: File = _
 
   @Input(doc = "The path to the binary of samtools", fullName = "path_to_samtools", shortName = "samtools", required = false)
   var samtoolsPath: File = _
@@ -85,22 +82,105 @@ trait FileAndProgramResourceConfig {
   @Argument(doc = "The path to snpEff config", fullName = "path_to_snpeff_config", shortName = "snpEffConf", required = false)
   var snpEffConfigPath: File = _
 
-  @Argument(doc = "The path to novoalignCS program", fullName = "path_to_novoalignCS", shortName = "novoalignCS", required = false)
-  var novoalignCS: File = _
-
-  @Argument(doc = "The path to novoalign program", fullName = "path_to_novoalign", shortName = "novoalign", required = false)
-  var novoalign: File = _
-
-  @Argument(doc = "The path to novosort program", fullName = "path_to_novosort", shortName = "novosort", required = false)
-  var novosort: File = _
-
-  @Argument(doc = "The path to novoindex program", fullName = "path_to_novoindex", shortName = "novoindex", required = false)
-  var novoindex: File = _
-
   /**
    * Implicitly convert any File to Option File, as necessary.
    */
   implicit def file2Option(file: File) = if (file == null) None else Some(file)
+
+  /**
+   * Helper functions  for configureResourcesFromConfigXML(). Put them outside so they can be overridden.
+   */
+
+  /**
+   * Will set all file resources specified in the config,
+   * but will not override them if they have been setup via the
+   * commandline.
+   * @param	config	The GlobalConfig instance containing all paths.
+   * @retuns Unit
+   */
+  protected def setFileResources(config: GlobalConfig): ResourceMap = {
+
+    val resources = config.getResources().getResource().map(f => {
+      val res = new Resource with NameVersionAndPath
+      res.setName(f.getName())
+      res.setPath(f.getPath())
+      res.setVersion(f.getVersion())
+      res
+    })
+
+    val resourceNameToPathsMap = transformToNamePathMap(resources)
+
+    if (this.dbSNP == null)
+      this.dbSNP = getFileFromKey(resourceNameToPathsMap, Constants.DB_SNP)
+
+    if (this.indels.isEmpty)
+      this.indels = getFileSeqFromKey(resourceNameToPathsMap, Constants.INDELS)
+
+    if (this.hapmap == null)
+      this.hapmap = getFileFromKey(resourceNameToPathsMap, Constants.HAPMAP)
+
+    if (this.omni == null)
+      this.omni = getFileFromKey(resourceNameToPathsMap, Constants.OMNI)
+
+    if (this.mills == null)
+      this.mills = getFileFromKey(resourceNameToPathsMap, Constants.MILLS)
+
+    if (this.thousandGenomes == null)
+      this.thousandGenomes = getFileFromKey(resourceNameToPathsMap, Constants.THOUSAND_GENOMES)
+
+    if (this.snpEffReference == null)
+      this.snpEffReference = getVersionFromKey(resourceNameToPathsMap, Constants.SNP_EFF_REFERENCE).get
+
+    resourceNameToPathsMap
+  }
+
+  /**
+   * Sets the program resources.
+   *
+   * @param config the new program resources
+   */
+  protected def setProgramResources(config: GlobalConfig): ResourceMap = {
+
+    val programs = config.getPrograms().getProgram().map(f => {
+      val prog = new Program with NameVersionAndPath
+      prog.setName(f.getName())
+      prog.setPath(f.getPath())
+      prog.setVersion(f.getVersion())
+      prog
+    })
+
+    val programNameToPathsMap = transformToNamePathMap(programs)
+
+    if (this.bwaPath == null)
+      this.bwaPath = getFileFromKey(programNameToPathsMap, Constants.BWA)
+
+    if (this.samtoolsPath == null)
+      this.samtoolsPath = getFileFromKey(programNameToPathsMap, Constants.SAMTOOLS)
+
+    if (this.qualimapPath == null)
+      this.qualimapPath = getFileFromKey(programNameToPathsMap, Constants.QUALIMAP)
+
+    if (this.pathToRNASeQC == null)
+      this.pathToRNASeQC = getFileFromKey(programNameToPathsMap, Constants.RNA_SEQC)
+
+    if (this.syncPath == null)
+      this.syncPath = getFileFromKey(programNameToPathsMap, Constants.FIX_EMPTY_READS)
+
+    if (this.cufflinksPath == null)
+      this.cufflinksPath = getFileFromKey(programNameToPathsMap, Constants.CUFFLINKS)
+
+    if (this.cutadaptPath == null)
+      this.cutadaptPath = getFileFromKey(programNameToPathsMap, Constants.CUTADAPT)
+
+    if (this.tophatPath == null)
+      this.tophatPath = getFileFromKey(programNameToPathsMap, Constants.TOPHAP)
+
+    if (this.snpEffPath == null)
+      this.snpEffPath = getFileFromKey(programNameToPathsMap, Constants.SNP_EFF)
+
+    programNameToPathsMap
+
+  }
 
   /**
    * Will load file resources from XML file. Any values set via the
@@ -116,111 +196,8 @@ trait FileAndProgramResourceConfig {
     xmlFile: Option[File],
     doNotLoadDefaultResourceFiles: Boolean = false): ResourceMap = {
 
-    /**
-     * Will set all file resources specified in the config,
-     * but will not override them if they have been setup via the
-     * commandline.
-     * @param	config	The GlobalConfig instance containing all paths.
-     * @retuns Unit
-     */
-
     println("Working with global config file: "+ xmlFile.get.getAbsolutePath)
 
-    def setFileResources(config: GlobalConfig): ResourceMap = {
-
-      val resources = config.getResources().getResource().map(f => {
-        val res = new Resource with NameVersionAndPath
-        res.setName(f.getName())
-        res.setPath(f.getPath())
-        res.setVersion(f.getVersion())
-        res
-      })
-
-      val resourceNameToPathsMap = transformToNamePathMap(resources)
-
-      if (this.dbSNP == null)
-        this.dbSNP = getFileFromKey(resourceNameToPathsMap, Constants.DB_SNP)
-
-      if (this.indels.isEmpty)
-        this.indels = getFileSeqFromKey(resourceNameToPathsMap, Constants.INDELS)
-
-      if (this.hapmap == null)
-        this.hapmap = getFileFromKey(resourceNameToPathsMap, Constants.HAPMAP)
-
-      if (this.omni == null)
-        this.omni = getFileFromKey(resourceNameToPathsMap, Constants.OMNI)
-
-      if (this.mills == null)
-        this.mills = getFileFromKey(resourceNameToPathsMap, Constants.MILLS)
-
-      if (this.thousandGenomes == null)
-        this.thousandGenomes = getFileFromKey(resourceNameToPathsMap, Constants.THOUSAND_GENOMES)
-
-      if (this.snpEffReference == null)
-        this.snpEffReference = getVersionFromKey(resourceNameToPathsMap, Constants.SNP_EFF_REFERENCE).get
-
-      if (this.novoalignCSReference == null)
-        this.novoalignCSReference = getFileFromKey(resourceNameToPathsMap, Constants.NVOALNCSREF).get
-
-      resourceNameToPathsMap
-    }
-
-    /**
-     * Sets the program resources.
-     *
-     * @param config the new program resources
-     */
-    def setProgramResources(config: GlobalConfig): ResourceMap = {
-
-      val programs = config.getPrograms().getProgram().map(f => {
-        val prog = new Program with NameVersionAndPath
-        prog.setName(f.getName())
-        prog.setPath(f.getPath())
-        prog.setVersion(f.getVersion())
-        prog
-      })
-
-      val programNameToPathsMap = transformToNamePathMap(programs)
-
-      if (this.alignerPath == null)
-        this.alignerPath = getFileFromKey(programNameToPathsMap, Constants.BWA)
-
-      if (this.samtoolsPath == null)
-        this.samtoolsPath = getFileFromKey(programNameToPathsMap, Constants.SAMTOOLS)
-
-      if (this.qualimapPath == null)
-        this.qualimapPath = getFileFromKey(programNameToPathsMap, Constants.QUALIMAP)
-
-      if (this.pathToRNASeQC == null)
-        this.pathToRNASeQC = getFileFromKey(programNameToPathsMap, Constants.RNA_SEQC)
-
-      if (this.syncPath == null)
-        this.syncPath = getFileFromKey(programNameToPathsMap, Constants.FIX_EMPTY_READS)
-
-      if (this.cufflinksPath == null)
-        this.cufflinksPath = getFileFromKey(programNameToPathsMap, Constants.CUFFLINKS)
-
-      if (this.cutadaptPath == null)
-        this.cutadaptPath = getFileFromKey(programNameToPathsMap, Constants.CUTADAPT)
-
-      if (this.tophatPath == null)
-        this.tophatPath = getFileFromKey(programNameToPathsMap, Constants.TOPHAP)
-
-      if (this.snpEffPath == null)
-        this.snpEffPath = getFileFromKey(programNameToPathsMap, Constants.SNP_EFF)
-
-      if (this.novoalignCS == null)
-        this.novoalignCS = getFileFromKey(programNameToPathsMap, Constants.NOVOALIGNCS)
-
-      if (this.novoalign== null)
-        this.novoalign = getFileFromKey(programNameToPathsMap, Constants.NOVOALIGN)
-
-      if (this.novosort == null)
-        this.novosort = getFileFromKey(programNameToPathsMap, Constants.NOVOSORT)
-
-      programNameToPathsMap
-
-    }
 
     if (xmlFile.isDefined) {
 
@@ -246,3 +223,4 @@ trait FileAndProgramResourceConfig {
   }
 
 }
+

@@ -1,7 +1,7 @@
 package molmed.qscripts
 
 import molmed.config.FileVersionUtilities.ResourceMap
-import molmed.config.{FileAndProgramResourceConfig, UppmaxXMLConfiguration}
+import molmed.config.{SolidProgramAndResourceConfig, UppmaxXMLConfiguration}
 import molmed.queue.setup.SampleAPI
 import molmed.report.ReportGenerator
 import molmed.utils._
@@ -18,7 +18,7 @@ import org.broadinstitute.gatk.utils.commandline.Hidden
 
 class QPipe extends QScript
     with UppmaxXMLConfiguration
-    with FileAndProgramResourceConfig {
+    with SolidProgramAndResourceConfig {
 
   // qscript will now be a alias for this (QScript)
   qscript =>
@@ -175,7 +175,7 @@ class QPipe extends QScript
     val aligner: Option[AlignerOption] = decideAlignerType(seqAlignerType)
 
     logger.debug("aligner type: " + aligner.toString)
-    val alignmentUtils = new AlignmentUtils(this, alignerPath, nbrOfThreads, samtoolsPath,
+    val alignmentUtils = new AlignmentUtils(this, bwaPath, nbrOfThreads, samtoolsPath,
       projectName, uppmaxConfig, otherResources = otherResources)
 
     logger.debug("ResourceMap size: " + otherResources.size)
