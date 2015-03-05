@@ -152,7 +152,7 @@ case object NvoAlnCS extends AlignerOption
 /**
  * Utility classes and functions for running bwa
  */
-class AlignmentUtils(qscript: QScript, alignerPath: String, numThreads: Int, samtoolsPath: String,
+class AlignmentUtils(qscript: QScript, bwaPath: String, numThreads: Int, samtoolsPath: String,
                      projectName: Option[String], uppmaxConfig: UppmaxConfig,
                      otherResources: ResourceMap = Map()) extends AligmentUtils(projectName, uppmaxConfig) {
 
@@ -209,7 +209,7 @@ class AlignmentUtils(qscript: QScript, alignerPath: String, numThreads: Int, sam
           reference = reference,
           intermediate = isIntermediateAlignment,
           isPairEnd = fastqs.hasPair,
-          libName = fastqs.sampleName.replaceFirst("\\..*$", ""),
+          libName = fastqs.sampleName.get.replaceFirst("\\..*$", ""),
           readGroupInfo = readGroupInfo)
         novoalgignCommand.novoOtherParams +=  " " + otherArguments
         log.debug("novoOtherParams: " + novoalgignCommand.novoOtherParams)
@@ -243,7 +243,7 @@ class AlignmentUtils(qscript: QScript, alignerPath: String, numThreads: Int, sam
     val reference = sample.getReference()
 
     // Add uniq name for run
-    fastqs.sampleName = sampleName + "." + sample.getReadGroupInformation.platformUnitId
+    fastqs.sampleName = Some(sampleName + "." + sample.getReadGroupInformation.platformUnitId)
 
     // Check that the reference is indexed
     checkReferenceIsBwaIndexed(reference)
@@ -260,7 +260,7 @@ class AlignmentUtils(qscript: QScript, alignerPath: String, numThreads: Int, sam
 
     this.isIntermediate = true
 
-    def commandLine = alignerPath + " aln -t " + numThreads + " -q 5 " + ref + " " + fastq + " > " + sai
+    def commandLine = bwaPath + " aln -t " + numThreads + " -q 5 " + ref + " " + fastq + " > " + sai
     override def jobRunnerJobName = projectName.get + "_bwaAln"
   }
 
@@ -278,7 +278,7 @@ class AlignmentUtils(qscript: QScript, alignerPath: String, numThreads: Int, sam
     // The output from this is a samfile, which can be removed later
     this.isIntermediate = intermediate
 
-    def commandLine = alignerPath + " samse " + ref + " " + sai + " " + mate1 + " -r " + readGroupInfo +
+    def commandLine = bwaPath + " samse " + ref + " " + sai + " " + mate1 + " -r " + readGroupInfo +
       sortAndIndex(alignedBam)
     override def jobRunnerJobName = projectName.get + "_bwaSamSe"
   }
@@ -295,7 +295,7 @@ class AlignmentUtils(qscript: QScript, alignerPath: String, numThreads: Int, sam
     // The output from this is a samfile, which can be removed later
     this.isIntermediate = intermediate
 
-    def commandLine = alignerPath + " sampe " + ref + " " + sai1 + " " + sai2 + " " + mate1 + " " + mate2 +
+    def commandLine = bwaPath + " sampe " + ref + " " + sai1 + " " + sai2 + " " + mate1 + " " + mate2 +
       " -r " + readGroupInfo +
       sortAndIndex(alignedBam)
     override def jobRunnerJobName = projectName.get + "_bwaSamPe"
@@ -329,7 +329,7 @@ class AlignmentUtils(qscript: QScript, alignerPath: String, numThreads: Int, sam
       " " + mate1 + " "
 
     def commandLine =
-      alignerPath + " mem -M -t " + nbrOfThreads + " " +
+      bwaPath + " mem -M -t " + nbrOfThreads + " " +
         " -R " + readGroupInfo + " " +
         ref + mateString +
         sortAndIndex(alignedBam)
@@ -346,7 +346,7 @@ class AlignmentUtils(qscript: QScript, alignerPath: String, numThreads: Int, sam
     // The output from this is a samfile, which can be removed later
     this.isIntermediate = intermediate
 
-    def commandLine = alignerPath + " bwasw -t " + numThreads + " " + ref + " " + fq +
+    def commandLine = bwaPath + " bwasw -t " + numThreads + " " + ref + " " + fq +
       sortAndIndex(bam)
     override def jobRunnerJobName = projectName.get + "_bwaSw"
   }
@@ -383,16 +383,25 @@ class AlignmentUtils(qscript: QScript, alignerPath: String, numThreads: Int, sam
     this.isIntermediate = intermediate
 
     val unsorted_bam = bam.getAbsolutePath.replace(".bam", "_unsorted.bam")
+    val unsorted_done= bam.getAbsolutePath.replace(".bam", "_unsorted.done")
+    val alignLog: String = bam.getAbsolutePath.replace(".bam", ".log")
+
+    val pairEndParams = if (isPairEnd) "" else "" // placeholder for now.
+
+    novoOtherParams += pairEndParams
 
     // We actually use novosort here
-    def sortAndIndex(inputBamPath: String): String = " && " + novosort + " -i -c " + numThreads +
-      " -m 7G  -t ./.queue/tmp --rg " + readGroupInfo + " -o " + bam + " " + inputBamPath
+    def sortAndIndex(inputBamPath: String): String =
+      s"  $novosort -i -c  $numThreads -m 7G  -t ./.queue/tmp --rg $readGroupInfo -o $bam $inputBamPath"
 
-    val captureBam = " | " +  samtoolsPath + " view -Sb -F4 - >" + unsorted_bam
+    val captureBam = s" | $samtoolsPath view -Sb -F4 - > $unsorted_bam && touch $unsorted_done"
 
-    def commandLine = if (isPairEnd) { "not implemented yet"} else {
-      novoalignCS + " -d " + novoalignCSRef + " -f " + input + " -F 'XSQ' " + libName + novoOtherParams +
-        " -c " + numThreads + " 2>" + bam.getAbsolutePath.replace(".bam", ".log") + captureBam +
+    def commandLine = if (new File(alignLog).exists) {
+      sortAndIndex(unsorted_bam)
+
+    } else {
+      s"$novoalignCS -d $novoalignCSRef -f $input -F 'XSQ' $libName $novoOtherParams" +
+        s" -c $numThreads  2> $alignLog $captureBam &&" +
         sortAndIndex(unsorted_bam)
     }
     override def jobRunnerJobName = projectName.get + "_nvoalnCS"
