@@ -428,6 +428,9 @@ class VariantCallingUtils(gatkOptions: GATKConfig, projectName: Option[String], 
     if (!t.intervals.isEmpty) this.intervals :+= t.intervals.get
     this.allPoly = true
     this.tranche ++= List("100.0", "99.9", "99.0", "90.0")
+    if (gatkOptions.defaultPlatform.toLowerCase.equals("solid")) {
+      this.minNumBadVariants = Some(5000)
+    }
   }
 
   class SnpRecalibration(t: VariantCallingTarget) extends VQSRBase(t) {
@@ -453,10 +456,6 @@ class VariantCallingUtils(gatkOptions: GATKConfig, projectName: Option[String], 
       if (t.nSamples <= 30) { // very few exome samples means very few variants
         this.mG = Some(4)
       }
-    }
-
-    if (gatkOptions.defaultPlatform.toLowerCase.equals("solid")) {
-      this.minNumBadVariants = Some(5000)
     }
 
     this.tranches_file = t.tranchesSnpFile
