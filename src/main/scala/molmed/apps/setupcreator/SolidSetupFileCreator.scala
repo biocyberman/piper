@@ -26,20 +26,20 @@ object SolidSetupFileCreator extends App {
   val parser = new OptionParser[Config]("SolidSetupFileCreator") {
     head("SolidSetupFileCreator", " - A utility program to create pipeline SOLiD setup xml files for Piper..")
 
-    opt[File]('o', "output") required () valueName ("Output xml file.") action { (x, c) =>
-      c.copy(outputFile = Some(x))
-    } text ("This is a required argument.")
-
-    opt[String]('p', "project_name") optional () valueName ("The name of this project.") action { (x, c) =>
+    opt[String]('p', "project_name") required() valueName ("The name of this project.") action { (x, c) =>
       c.copy(projectName = Some(x))
     } text ("This is a required argument.")
 
+    opt[File]('o', "output") optional () valueName ("Output xml file.") action { (x, c) =>
+      c.copy(outputFile = Some(x))
+    } text ("This is a required argument.")
+
     opt[String]('s', "sequencing_platform") optional () valueName ("The technology used for sequencing, e.g. Illumina") action { (x, c) =>
-      c.copy(seqencingPlatform = Some(x))
+      c.copy(seqencingPlatform = Some("SOLiD"))
     } text ("This is a required argument.")
 
     opt[String]('c', "sequencing_center") optional () valueName ("Where the sequencing was carried out, e.g. NGI, AfMD") action { (x, c) =>
-      c.copy(sequencingCenter = Some(x))
+      c.copy(sequencingCenter = Some("AfMD"))
     } text ("This is a required argument.")
 
     opt[String]('q', "qos") optional () valueName ("A optional quality of service (QoS) flag to forward to the cluster.") action { (x, c) =>
@@ -48,7 +48,7 @@ object SolidSetupFileCreator extends App {
 
     opt[String]('a', "uppnex_project_id") optional () valueName ("The uppnex project id to charge the core hours to.") action { (x, c) =>
       c.copy(uppmaxProjectId = Some(x))
-    } text ("This is a required argument.")
+    } text ("This is a optional argument.")
 
     opt[File]('i', "input_seqfile") unbounded () optional () valueName ("Input path to sequence files to include in analysis.") action { (x, c) =>
       c.copy(seqFiles = c.seqFiles.getOrElse(Seq()) :+ x)
@@ -66,8 +66,10 @@ object SolidSetupFileCreator extends App {
       config.getClass().getDeclaredFields.
         forall(p => p.isDefined)
 
-    if (allFieldsAreSet)
+    if (allFieldsAreSet) {
       createSetupFile(config)
+
+    }
     else
       parser.showUsage
 
@@ -79,11 +81,13 @@ object SolidSetupFileCreator extends App {
 
     val project = SolidSetupUtils.createProject()
 
+    val uppmaxProjectId = if (config.uppmaxProjectId.get.isEmpty) config.projectName.get else config.uppmaxProjectId.get
+
     val projectWithMetaData = SolidSetupUtils.setMetaData(project)(
       config.projectName.get,
       config.seqencingPlatform.get,
       config.sequencingCenter.get,
-      config.uppmaxProjectId.get,
+      uppmaxProjectId,
       config.uppmaxQoSFlag.get,
       config.reference.get)
     val inputFiles = config.seqFiles.get
@@ -91,7 +95,12 @@ object SolidSetupFileCreator extends App {
     val projectWithSamplesAdded =
       SolidSetupUtils.createProjectXML(projectWithMetaData)(inputFiles)
 
-    SolidSetupUtils.writeToFile(projectWithSamplesAdded, config.outputFile.get)
+    val outputFile =    if (config.outputFile.get.getCanonicalPath.isEmpty)
+      new File(config.projectName.get + ".xml")
+    else  config.outputFile.get
+
+
+    SolidSetupUtils.writeToFile(projectWithSamplesAdded, outputFile )
 
     println("Successfully created: " + config.outputFile.get + ".")
   }
