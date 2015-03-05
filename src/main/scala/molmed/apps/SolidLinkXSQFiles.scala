@@ -14,6 +14,7 @@ object SolidLinkXSQFiles extends App {
 
   case class Config(
                      outputFile: Option[String] = None,
+                     action: Option[String] = "link",
                      seqFiles: Option[Seq[File]] = Some(Seq()))
 
   val parser = new OptionParser[Config]("SolidLinkXSQFiles") {
@@ -23,6 +24,10 @@ object SolidLinkXSQFiles extends App {
       c.copy(outputFile = Some(x))
     } text ("This is a required argument.")
 
+    opt[String]('a', "action") required () valueName ("Link or merge files. Put 'link' for linking and 'merge' for merging") action { (x, c) =>
+      c.copy(action = Some(x))
+    } text ("This is a required argument.")
+
     opt[File]('i', "input_xsqfiles") unbounded () optional () valueName ("Input paths to XSQ files to link.") action { (x, c) =>
       c.copy(seqFiles = c.seqFiles.getOrElse(Seq()) :+ x)
     } text ("This is a required argument. Can be specified multiple times.")
@@ -30,6 +35,8 @@ object SolidLinkXSQFiles extends App {
   }
 
   // Start up the app!
+
+
   parser.parse(args, new Config()) map { config =>
 
     val allFieldsAreSet =
@@ -37,7 +44,7 @@ object SolidLinkXSQFiles extends App {
         forall(p => p.isDefined)
 
     if (allFieldsAreSet)
-      linkXSQFiles(config)
+      processXSQFiles(config)
     else
       parser.showUsage
 
@@ -45,12 +52,13 @@ object SolidLinkXSQFiles extends App {
     // arguments are bad, usage message will have been displayed
   }
 
-  def linkXSQFiles(config: Config): Unit = {
+  def processXSQFiles(config: Config): Unit = {
 
-    val linkXSQ = new MultiXSQFiles(config.outputFile.get, config.seqFiles.get)
-    linkXSQ.linkXSQFiles
-    linkXSQ.close
+    val handler = new MultiXSQFiles(config.outputFile.get, config.seqFiles.get)
+
+    if (config.action.get.toLowerCase == "link") handler.linkXSQFiles else handler.joinXSQFiles
+
+    handler.close
     println("Successfully created: " + config.outputFile.get + ".")
   }
-
 }
