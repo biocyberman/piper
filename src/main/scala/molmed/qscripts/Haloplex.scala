@@ -143,7 +143,7 @@ class Haloplex extends QScript
           } else null
 
         val readGroupContainer = new InputSeqFileContainer(files = Seq(mate1SyncedFastq, mate2SyncedFastq),
-                                                                       sampleName = sample.getSampleName(),
+                                                                       sampleName = Some(sample.getSampleName),
                                                                        fileType = InputSeqFileType.FASTQ,
                                                                        hasPair = readpairContainer.hasPair)
         new Sample(sample.getSampleName, sample.getReference, sample.getReadGroupInformation, readGroupContainer)
@@ -205,7 +205,7 @@ class Haloplex extends QScript
     val cutAndSyncedSamples = cutSamples(samples, generalUtils)
 
     // Align with bwa
-    val alignmentHelper = new AlignmentUtils(this, alignerPath, nbrOfThreads, samtoolsPath, projectName, uppmaxConfig)
+    val alignmentHelper = new AlignmentUtils(this, bwaPath, nbrOfThreads, samtoolsPath, projectName, uppmaxConfig)
     val cohortList =
       cutAndSyncedSamples.values.flatten.map(sample => alignmentHelper.align(sample, bamOutputDir, false, Some(BwaAln))).toSeq
 

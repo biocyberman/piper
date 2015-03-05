@@ -123,7 +123,7 @@ class GeneralUtils(projectName: Option[String], uppmaxConfig: UppmaxConfig) exte
         mate2SyncedFastq
       } else null
 
-      val readGroupContainer = new InputSeqFileContainer(Seq(mate1SyncedFastq, mate2SyncedFastq), sample.getSampleName, hasPair = true)
+      val readGroupContainer = new InputSeqFileContainer(Seq(mate1SyncedFastq, mate2SyncedFastq), Some(sample.getSampleName), hasPair = true)
 
       new Sample(sample.getSampleName, sample.getReference, sample.getReadGroupInformation, readGroupContainer)
     }

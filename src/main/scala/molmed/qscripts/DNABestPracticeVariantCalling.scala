@@ -180,7 +180,7 @@ class DNABestPracticeVariantCalling extends QScript
                     alignmentOutputDir: File): Map[String, Seq[File]] = {
 
     val aligner: Option[AlignerOption] = decideAlignerType(bwaAlignerType)
-    val alignmentUtils = new AlignmentUtils(this, alignerPath, nbrOfThreads, samtoolsPath, projectName, uppmaxConfig)
+    val alignmentUtils = new AlignmentUtils(this, bwaPath, nbrOfThreads, samtoolsPath, projectName, uppmaxConfig)
     val sampleNamesAndalignedBamFiles = samples.values.flatten.map(sample =>
       (sample.getSampleName,
         alignmentUtils.align(

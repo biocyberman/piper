@@ -17,7 +17,7 @@ class SetupXMLReaderSnpSeqUnitTest {
     val baseTest = SnpSeqBaseTest
     val setupFile: File = new File(baseTest.pathToSetupFile)
     val setupXMLReader = SetupXMLReader(setupFile)
-    val sampleName = "1"
+    val sampleName:Option[String] = Some("1")
     val runFolderName = "src/test/resources/testdata/smallTestFastqDataFolder/report.xml"
 
     @BeforeMethod
@@ -25,7 +25,7 @@ class SetupXMLReaderSnpSeqUnitTest {
         val baseTest = SnpSeqBaseTest
         val setupFile: File = new File(baseTest.pathToSetupFile)
         val setupXMLReader = SetupXMLReader(setupFile)
-        val sampleName = "1"
+        val sampleName = Some("1")
     }
 
     @AfterMethod
@@ -33,7 +33,7 @@ class SetupXMLReaderSnpSeqUnitTest {
         val baseTest = null
         val setupFile: File = null
         val setupXMLReader = null
-        val sampleName = null
+        val sampleName = None
     }
 
     @Test
@@ -69,7 +69,7 @@ class SetupXMLReaderSnpSeqUnitTest {
                 Sample("1", new File("src/test/resources/testdata/exampleFASTA.fasta"),
                     ReadGroupInformation("1", "C0HNDACXX.1.1", "SNP_SEQ_PLATFORM", "CEP_C13-NA11992", "Illumina", "C0HNDACXX.1.1"),
                     InputSeqFileContainer(Seq(new File("src/test/resources/testdata/smallTestFastqDataFolder/Sample_1/exampleFASTQ_L001_R1_file.fastq").getAbsoluteFile(),
-                        new File("src/test/resources/testdata/smallTestFastqDataFolder/Sample_1/exampleFASTQ_L001_R2_file.fastq").getAbsoluteFile()), "1"))))
+                        new File("src/test/resources/testdata/smallTestFastqDataFolder/Sample_1/exampleFASTQ_L001_R2_file.fastq").getAbsoluteFile()), sampleName))))
         assert(expected.sameElements(expected))
         assert(expected.keys.equals(actual.keys))
     }
@@ -87,12 +87,12 @@ class SetupXMLReaderSnpSeqUnitTest {
                     ReadGroupInformation("1", "C0HNDACXX.1.1", "SNP_SEQ_PLATFORM", "CEP_C13-NA11992", "Illumina", "C0HNDACXX.1.1", Some(491462860)),
                     InputSeqFileContainer(Seq(new File("src/test/resources/testdata/runFolderWithSameSampleInMultipleLanes/Sample_1/exampleFASTQ_L001_R1_file.fastq").getAbsoluteFile(),
                         new File("src/test/resources/testdata/runFolderWithSameSampleInMultipleLanes/Sample_1/exampleFASTQ_L001_R2_file.fastq").getAbsoluteFile()),
-                        "1")),
+                        sampleName)),
                 Sample("1", new File("src/test/resources/testdata/exampleFASTA.fasta").getAbsoluteFile(),
                     ReadGroupInformation("1", "C0HNDACXX.1.2", "SNP_SEQ_PLATFORM", "CEP_C13-NA11992", "Illumina", "C0HNDACXX.1.2", Some(491462860)),
                     InputSeqFileContainer(Seq(new File("src/test/resources/testdata/runFolderWithSameSampleInMultipleLanes/Sample_1/exampleFASTQ_L002_R1_file.fastq").getAbsoluteFile(),
                         new File("src/test/resources/testdata/runFolderWithSameSampleInMultipleLanes/Sample_1/exampleFASTQ_L002_R2_file.fastq").getAbsoluteFile()),
-                        "1"))))
+                        sampleName))))
 
         // Run the test and evaluate the result
         val actual: Map[String, Seq[SampleAPI]] = setupXMLReader.getSamples()
@@ -113,12 +113,12 @@ class SetupXMLReaderSnpSeqUnitTest {
                     ReadGroupInformation("1", "C0HNDACXX.1.1", "SNP_SEQ_PLATFORM", "CEP_C13-NA11992", "Illumina", "C0HNDACXX.1.1", Some(245731430)),
                     InputSeqFileContainer(Seq(new File("src/test/resources/testdata/runFoldersForMultipleSample/runfolder1/Sample_1/exampleFASTQ_L001_R1_file.fastq").getAbsoluteFile(),
                         new File("src/test/resources/testdata/runFoldersForMultipleSample/runfolder1/Sample_1/exampleFASTQ_L001_R2_file.fastq").getAbsoluteFile()),
-                        "1")),
+                        sampleName)),
                 Sample("1", new File("src/test/resources/testdata/exampleFASTA.fasta").getAbsoluteFile(),
                     ReadGroupInformation("1", "AAAAAAAAA.1.1", "SNP_SEQ_PLATFORM", "SomeOtherLibraryName", "Illumina", "AAAAAAAAA.1.1", Some(245731430)),
                     InputSeqFileContainer(Seq(new File("src/test/resources/testdata/runFoldersForMultipleSample/runfolder2/Sample_1/exampleFASTQ_L001_R1_file.fastq").getAbsoluteFile(),
                         new File("src/test/resources/testdata/runFoldersForMultipleSample/runfolder2/Sample_1/exampleFASTQ_L001_R2_file.fastq").getAbsoluteFile()),
-                        "1"))))
+                        sampleName))))
 
         // Run the test and evaluate the result
         val actual: Map[String, Seq[SampleAPI]] = setupXMLReader.getSamples()
@@ -130,7 +130,7 @@ class SetupXMLReaderSnpSeqUnitTest {
     @Test
     def TestGetReference() = {
         val expected: File = new File("src/test/resources/testdata/exampleFASTA.fasta").getAbsoluteFile()
-        val actual: File = setupXMLReader.getReference(sampleName)
+        val actual: File = setupXMLReader.getReference(sampleName.get)
         assert(expected == actual, "actual=" + actual + " expected=" + expected)
     }
 

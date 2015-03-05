@@ -202,11 +202,9 @@ class LegacySetupXMLReader(setupXML: File) extends SetupXMLReaderAPI {
           new InputSeqFileContainer(Seq(
             fastq1.get(0).getAbsoluteFile(),
             fastq2.get(0).getAbsoluteFile()
-          ),
-            sampleName = sampleName,
-          hasPair = true)
+          ), sampleName = Some(sampleName), hasPair = true)
         case (1, 0) =>
-          new InputSeqFileContainer(Seq(fastq1.get(0)),sampleName = sampleName)
+          new InputSeqFileContainer(Seq(fastq1.get(0)), sampleName = Some(sampleName))
         case m: (Int, Int) if m._1 + m._2 > 2 =>
           throw new IllegalArgumentException(
             "Found more than two hits for sample: " + sampleName +

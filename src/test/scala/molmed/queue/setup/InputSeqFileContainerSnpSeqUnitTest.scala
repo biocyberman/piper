@@ -14,7 +14,7 @@ class InputSeqFileContainerSnpSeqUnitTest{
         
         val mate1: File = new File(baseTest.pathToMate1)      
         val mate2: File = new File(baseTest.pathToMate1)
-        val sampleName: String = "testSample"
+        val sampleName: Option[String] = Some("testSample")
                       
         // Class under test
         val readPairContainer: InputSeqFileContainer = new InputSeqFileContainer(Seq(mate1, mate2), sampleName, hasPair = true)
@@ -28,9 +28,8 @@ class InputSeqFileContainerSnpSeqUnitTest{
     	
         val mate1: File = new File(baseTest.pathToMate1)
         val mate2: File = null
-        val sampleName: String = "testSample"
-                      
-        // Class under test
+        val sampleName: Option[String] = Some("testSample")
+      // Class under test
         val readPairContainer: InputSeqFileContainer = new InputSeqFileContainer(Seq(mate1, mate2), sampleName)
         
         // Run the test
