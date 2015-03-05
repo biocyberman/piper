@@ -2,6 +2,9 @@ package molmed.apps.setupcreator
 
 import java.io.File
 import java.io.FileOutputStream
+import molmed.apps.MakeSolidProjectHierarchy.SampleInfo
+import molmed.utils.bam.{MultiLibrariesFromBam, LibraryMetaDataFromBam}
+import molmed.utils.traits.MultiLibrariesTrait
 import molmed.xml.setup.Project
 import molmed.xml.setup.Metadata
 import molmed.xml.setup.Platformunit
@@ -16,7 +19,9 @@ import javax.xml.bind.Marshaller
 import molmed.apps.MakeSolidProjectHierarchy
 import molmed.queue.setup.ReportReader
 import molmed.utils.xsq._
+import molmed.queue.setup.InputSeqFileType
 
+import htsjdk.samtools.SamReaderFactory
 
 //
 //trait SetupUtils{
@@ -303,6 +308,54 @@ object SolidSetupUtils extends App{
 
   }
 
+  def getSamplesInfo(inputSeqFiles: Seq[File] = Seq()): Seq[SampleInfo] ={
+
+    def getSeqFileInfo(inFile: File):MultiLibrariesTrait = {
+      // Check file extentions. For simplicity, process only one file type.
+      val inputFileExt = inputSeqFiles.head.getName.split("\\.").last.toUpperCase
+      val inputType = InputSeqFileType.withName(inputFileExt)
+      // Do the FASTQ case, this case, metadata has to be proivided in file names.
+        if (inputType == InputSeqFileType.FASTQ ) {
+          new NotImplementedError("Don't know how to handle Fastq yet!")
+        }
+      val fileInfo = if (inputType == InputSeqFileType.XSQ){
+        // Do the XSQ case
+        XSQFile(inFile.getAbsolutePath)
+      } else {
+        //(inputType == InputSeqFileType.BAM)
+        // Do the BAM case
+        MultiLibrariesFromBam(inFile)
+      }
+      fileInfo
+      }
+
+    val samplesInfo = for {
+      seqFile <- inputSeqFiles
+      seqInfo = getSeqFileInfo(seqFile)
+      lib <- seqInfo.getLibraries
+
+    } yield {
+
+      val sampleName = lib.libraryName
+      val library = lib.getNameAndBarCode
+      val index = lib.indexName.get
+      val read = 1 // TODO: this is just to mimic fastq setup, find a better way.
+
+      new SampleInfo(
+        sampleName,
+        library,
+        seqInfo.lane,
+        seqInfo.date,
+        seqInfo.flowCellId,
+        index,
+        seqFile,
+        read)
+    }
+
+    samplesInfo
+
+  }
+
 
   /**
    * This will parse a list of FASTQ files assuming the uu snp formatting (see
@@ -361,38 +414,7 @@ object SolidSetupUtils extends App{
 
      */
 
-
-
-    val fileInfo =
-      for {
-        xsqFile<- fileList
-        xsq = new XSQFile(xsqFile.getAbsolutePath)
-        metaData = xsq.runMetadata
-        lane = metaData.get("LaneNumber").get.toString.toInt
-        flowCellId = metaData.get("FlowcellAssignment").get.toString
-        date = metaData.get("RunEndTime").get.toString
-        xsqLib <- xsq.getLibraries
-
-      } yield {
-
-        val sampleName = xsqLib.name
-
-        val library = xsqLib.getNameAndBarCode
-
-        val index = xsqLib.indexName.get
-
-        val read = 1 // TODO: this is just to mimic fastq setup, find a better way.
-
-        new MakeSolidProjectHierarchy.SampleInfo(
-          sampleName,
-          library,
-          lane,
-          date,
-          flowCellId,
-          index,
-          xsqFile,
-          read)
-      }
+    val fileInfo = getSamplesInfo(fileList)
 
     //createXMLFromFileInfo(project, fileInfo.toSet)
     constructProjectHierarchy(project, fileInfo.toSet)
