@@ -79,7 +79,9 @@ class GATKUtils(gatkOptions: GATKConfig, projectName: Option[String], uppmaxConf
     this.covariate ++= Seq("ReadGroupCovariate", "QualityScoreCovariate", "CycleCovariate", "ContextCovariate")
     this.input_file :+= inBam
     this.disable_indel_quals = false
-    this.solid_nocall_strategy = org.broadinstitute.gatk.utils.recalibration.RecalUtils.SOLID_NOCALL_STRATEGY.PURGE_READ
+    if (gatkOptions.defaultPlatform.toLowerCase == "solid") {
+      this.solid_nocall_strategy = org.broadinstitute.gatk.utils.recalibration.RecalUtils.SOLID_NOCALL_STRATEGY.PURGE_READ
+    }
     this.out = outRecalFile
     if (!defaultPlatform.isEmpty) this.default_platform = defaultPlatform
     if (!gatkOptions.intervalFile.isEmpty) this.intervals :+= gatkOptions.intervalFile.get
