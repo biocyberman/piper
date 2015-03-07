@@ -71,7 +71,7 @@ case class XSQFile(xsqFile: String) extends MultiLibrariesTrait {
     if (isBarcoded) {
       val libraries = libraryGroupIndex.filter(e => !e.contains("Unassigned") && !e.contains("__DATA_TYPES__")).
         map(l => {
-        log.debug("Library found in XSQ: {}", l)
+        log.info(s"Library found in ...${xsqFile.takeRight(30)}: $l")
         val libName = xsqReadHandler.string().getAttr("/" + l, "LibraryName")
         val indexName = xsqReadHandler.string().getAttr("/" + l, "IndexName")
         val indexID = xsqReadHandler.int16().getAttr("/" + l, "IndexID").toInt
