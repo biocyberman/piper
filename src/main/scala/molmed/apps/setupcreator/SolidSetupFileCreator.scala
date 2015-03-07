@@ -35,11 +35,11 @@ object SolidSetupFileCreator extends App {
     } text ("This is a required argument.")
 
     opt[String]('s', "sequencing_platform") optional () valueName ("The technology used for sequencing, e.g. Illumina") action { (x, c) =>
-      c.copy(seqencingPlatform = Some("SOLiD"))
+      c.copy(seqencingPlatform = Some(c.seqencingPlatform.getOrElse("SOLiD")))
     } text ("This is a required argument.")
 
     opt[String]('c', "sequencing_center") optional () valueName ("Where the sequencing was carried out, e.g. NGI, AfMD") action { (x, c) =>
-      c.copy(sequencingCenter = Some("AfMD"))
+      c.copy(sequencingCenter = Some(c.sequencingCenter.getOrElse("AfMD")))
     } text ("This is a required argument.")
 
     opt[String]('q', "qos") optional () valueName ("A optional quality of service (QoS) flag to forward to the cluster.") action { (x, c) =>
@@ -60,33 +60,29 @@ object SolidSetupFileCreator extends App {
   }
 
   // Start up the app!
-  parser.parse(args, new Config()) map { config =>
+  parser.parse(args, new Config()) match {
+    case Some(config) => createSetupFile(config)
 
-    val allFieldsAreSet =
-      config.getClass().getDeclaredFields.
-        forall(p => p.isDefined)
+    case None => parser.showUsage
 
-    if (allFieldsAreSet) {
-      createSetupFile(config)
-
-    }
-    else
-      parser.showUsage
-
-  } getOrElse {
-    // arguments are bad, usage message will have been displayed
   }
 
   def createSetupFile(config: Config): Unit = {
 
     val project = SolidSetupUtils.createProject()
 
-    val uppmaxProjectId = if (config.uppmaxProjectId.get.isEmpty) config.projectName.get else config.uppmaxProjectId.get
+    val uppmaxProjectId = if (config.uppmaxProjectId.isEmpty){
+      println("uppmaxProjectId not set, taking it from projectName")
+      config.projectName.get
+    } else config.uppmaxProjectId.get
+
+    val sequencingPlatform = if (config.seqencingPlatform.isEmpty) "SOLiD" else config.seqencingPlatform.get
+    val sequencingCenter = if (config.sequencingCenter.isEmpty) "AfMD" else config.sequencingCenter.get
 
     val projectWithMetaData = SolidSetupUtils.setMetaData(project)(
       config.projectName.get,
-      config.seqencingPlatform.get,
-      config.sequencingCenter.get,
+      sequencingPlatform,
+      sequencingCenter,
       uppmaxProjectId,
       config.uppmaxQoSFlag.get,
       config.reference.get)
@@ -95,14 +91,14 @@ object SolidSetupFileCreator extends App {
     val projectWithSamplesAdded =
       SolidSetupUtils.createProjectXML(projectWithMetaData)(inputFiles)
 
-    val outputFile =    if (config.outputFile.get.getCanonicalPath.isEmpty)
+    val outputFile =    if (config.outputFile.isEmpty)
       new File(config.projectName.get + ".xml")
     else  config.outputFile.get
 
 
     SolidSetupUtils.writeToFile(projectWithSamplesAdded, outputFile )
 
-    println("Successfully created: " + config.outputFile.get + ".")
+    println("Successfully created: " + outputFile + ".")
   }
 
 }
