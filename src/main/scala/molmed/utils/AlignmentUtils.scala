@@ -177,9 +177,9 @@ class AlignmentUtils(qscript: QScript, bwaPath: String, numThreads: Int, samtool
                                                  aligner: Option[AlignerOption],
                                                  otherArguments: String = ""): File = {
 
-    val saiFile1 = new File(outputDir + "/" + fastqs.sampleName + ".1.sai")
-    val saiFile2 = new File(outputDir + "/" + fastqs.sampleName + ".2.sai")
-    val alignedBamFile = new File(outputDir + "/" + fastqs.sampleName + ".bam")
+    val saiFile1 = new File(outputDir + "/" + fastqs.sampleName.get + ".1.sai")
+    val saiFile2 = new File(outputDir + "/" + fastqs.sampleName.get + ".2.sai")
+    val alignedBamFile = new File(outputDir + "/" + fastqs.sampleName.get + ".bam")
 
     log.debug("otherArguments: {}", otherArguments)
 
