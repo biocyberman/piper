@@ -108,7 +108,7 @@ print_guide(){
    echo "If you want to run on a cluster you need to make sure "
    echo "that the appropriate libraries are available on the path."
    echo "On Uppmax this is done by exporting: "
-   coloured_text "  export LD_LIBRARY_PATH=/sw/apps/build/slurm-drmaa/default/lib/:$LD_LIBRARY_PATH"
+   coloured_text "  export LD_LIBRARY_PATH=${LIB_PATH}:\$LD_LIBRARY_PATH"
    echo "On other systems you need to figure out the path to the slurm-drmaa libraries, "
    echo "and add it in the same way."
    echo "To make sure you can always reach piper, add run following commands to "
