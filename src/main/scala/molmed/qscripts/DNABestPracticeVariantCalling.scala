@@ -2,24 +2,9 @@ package molmed.qscripts
 
 import org.broadinstitute.gatk.queue.QScript
 import molmed.queue.setup.SampleAPI
-import molmed.utils.AlignerOption
-import molmed.utils.AlignmentQCUtils
-import molmed.utils.AlignmentUtils
-import molmed.utils.BwaAln
-import molmed.utils.BwaMem
-import molmed.utils.GATKConfig
-import molmed.utils.GATKDataProcessingUtils
-import molmed.utils.GATKHaplotypeCaller
-import molmed.utils.GATKUnifiedGenotyper
-import molmed.utils.GeneralUtils
-import molmed.utils.MergeFilesUtils
-import molmed.utils.UppmaxConfig
+import molmed.utils._
 import molmed.config.UppmaxXMLConfiguration
-import molmed.utils.VariantCallerOption
-import molmed.utils.VariantCallingConfig
-import molmed.utils.VariantCallingUtils
 import org.broadinstitute.gatk.queue.function.InProcessFunction
-import molmed.utils.DeliveryUtils
 import molmed.config.FileAndProgramResourceConfig
 import org.broadinstitute.gatk.utils.commandline.Hidden
 import molmed.report.ReportGenerator
@@ -180,7 +165,7 @@ class DNABestPracticeVariantCalling extends QScript
                     alignmentOutputDir: File): Map[String, Seq[File]] = {
 
     val aligner: Option[AlignerOption] = decideAlignerType(bwaAlignerType)
-    val alignmentUtils = new AlignmentUtils(this, bwaPath, nbrOfThreads, samtoolsPath, projectName, uppmaxConfig)
+    val alignmentUtils = new AlignmentUtilsBwa(this, bwaPath, nbrOfThreads, samtoolsPath, projectName, uppmaxConfig)
     val sampleNamesAndalignedBamFiles = samples.values.flatten.map(sample =>
       (sample.getSampleName,
         alignmentUtils.align(

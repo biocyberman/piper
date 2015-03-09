@@ -44,7 +44,7 @@ class QPipe extends QScript
   @Argument(doc = "Cleaning model: KNOWNS_ONLY, USE_READS or USE_SW. (Default: USE_READS)", fullName = "clean_model", shortName = "cm", required = false)
   var cleaningModel: String = "USE_READS"
 
-  @Argument(doc = "The type of sequence aligner to use. Options are NVOALIGNCS, NVOALN, BWA_MEM and BWA_ALN. (Default: NVOALIGNCS)", fullName = "seq_aligner", shortName = "seqalner", required = false)
+  @Argument(doc = "The type of sequence aligner to use. Options are NVOALIGNCS, NVOALN, NVOALN_MPI and NVOALNCS_MPI. (Default: NVOALIGNCS)", fullName = "seq_aligner", shortName = "seqalner", required = false)
   var seqAlignerType: String = "NVOALNCS"
 
   @Argument(doc = "Base path for all output working files.", fullName = "output_directory", shortName = "outputDir", required = false)
@@ -136,7 +136,7 @@ class QPipe extends QScript
   /**
    * Deparces string options into proper Variant caller options
    * @param stringOption	Text to convert to Option class
-   * @returns A Option[Aligner] holding a valid aligner option
+   * @return A Option[Aligner] holding a valid aligner option
    */
   def decideVariantCallerType(stringOption: String): Option[VariantCallerOption] = {
     stringOption match {
@@ -149,15 +149,16 @@ class QPipe extends QScript
   /**
    * Deparces string options into proper Aligner options
    * @param stringOption	Text to convert to Option class
-   * @returns A Option[Aligner] holding a valid aligner option
+   * @return A Option[Aligner] holding a valid aligner option
    */
   def decideAlignerType(stringOption: String): Option[AlignerOption] = {
     stringOption match {
-      case "BWA_MEM" => Some(BwaMem)
-      case "BWA_ALN" => Some(BwaAln)
+      case "NVOALN" => Some(NvoAln)
+      case "NVOALN_MPI" => Some(NvoAlnMpi)
       case "NVOALNCS" => Some(NvoAlnCS)
-        
-      case s: String => throw new IllegalArgumentException("Did not recognize aligner option: " + s)
+      case "NVOALNCS_MPI" => Some(NvoAlnCSMpi)
+
+      case s: String => throw new IllegalArgumentException("Unsupported aligner option: " + s)
     }
   }
 
@@ -175,7 +176,7 @@ class QPipe extends QScript
     val aligner: Option[AlignerOption] = decideAlignerType(seqAlignerType)
 
     logger.debug("aligner type: " + aligner.toString)
-    val alignmentUtils = new AlignmentUtils(this, bwaPath, nbrOfThreads, samtoolsPath,
+    val alignmentUtils = new AlignmentUtilsNovocraft(this, bwaPath, nbrOfThreads, samtoolsPath,
       projectName, uppmaxConfig, otherResources = otherResources)
 
     logger.debug("ResourceMap size: " + otherResources.size)

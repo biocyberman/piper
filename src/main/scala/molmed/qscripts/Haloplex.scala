@@ -2,6 +2,7 @@ package molmed.qscripts
 
 import java.io.FileNotFoundException
 import java.io.PrintWriter
+
 import scala.collection.JavaConversions._
 import scala.io.Source
 import org.broadinstitute.gatk.queue.QScript
@@ -19,20 +20,13 @@ import org.broadinstitute.gatk.queue.extensions.picard.SortSam
 import org.broadinstitute.gatk.queue.function.ListWriterFunction
 import molmed.queue.extensions.picard.CollectTargetedPcrMetrics
 import molmed.queue.setup._
-import molmed.utils.Resources
+import molmed.utils._
 import molmed.utils.GeneralUtils._
 import htsjdk.samtools.SAMFileHeader
 import htsjdk.samtools.SAMFileHeader.SortOrder
 import htsjdk.samtools.SAMTextHeaderCodec
 import molmed.utils.ReadGroupUtils._
-import molmed.utils.Uppmaxable
-import molmed.utils.AlignmentUtils
-import molmed.utils.GeneralUtils
-import molmed.utils.UppmaxConfig
 import molmed.config.UppmaxXMLConfiguration
-import molmed.utils.UppmaxJob
-import molmed.utils.BwaAln
-import molmed.utils.BedToIntervalUtils
 import org.broadinstitute.gatk.engine.downsampling.DownsampleType
 import org.broadinstitute.gatk.utils.commandline.Hidden
 import molmed.report.ReportGenerator
@@ -205,7 +199,7 @@ class Haloplex extends QScript
     val cutAndSyncedSamples = cutSamples(samples, generalUtils)
 
     // Align with bwa
-    val alignmentHelper = new AlignmentUtils(this, bwaPath, nbrOfThreads, samtoolsPath, projectName, uppmaxConfig)
+    val alignmentHelper = new AlignmentUtilsBwa(this, bwaPath, nbrOfThreads, samtoolsPath, projectName, uppmaxConfig)
     val cohortList =
       cutAndSyncedSamples.values.flatten.map(sample => alignmentHelper.align(sample, bamOutputDir, false, Some(BwaAln))).toSeq
 

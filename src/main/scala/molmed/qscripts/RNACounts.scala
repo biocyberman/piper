@@ -14,7 +14,7 @@ import molmed.utils.CufflinksUtils
 import molmed.utils.GeneralUtils
 import molmed.utils.ReadGroupUtils
 import molmed.utils.ReadGroupUtils._
-import molmed.utils.TophatAligmentUtils
+import molmed.utils.AlignmentUtilsTophat
 import molmed.utils.UppmaxConfig
 import molmed.utils.UppmaxJob
 import molmed.config.UppmaxXMLConfiguration
@@ -185,7 +185,7 @@ class RNACounts
     //Setup cufflink
     val cufflinksUtils = new CufflinksUtils(projectName, transcripts, libraryType, uppmaxConfig)
     //Setup TopHat alignment
-    val tophatUtils = new TophatAligmentUtils(tophatPath, tophatThreads,
+    val tophatUtils = new AlignmentUtilsTophat(tophatPath, tophatThreads,
       projectName, uppmaxConfig)
 
     // Assumes same reference is used for all samples
