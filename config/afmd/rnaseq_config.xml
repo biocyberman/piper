@@ -81,7 +81,13 @@
             <path>/space/system/USeq_8.8.9/Apps/SamTranscriptomeParser</path>
             <version>8.8.9</version>
         </program>
+        <program>
+            <name>novoalignCSReference</name>
+            <path>/space/data/resources/Rnorvegicus/rn6/novocraft/rn6.rnaseq.n60k.cnx</path>
+            <version>RN6.RNASEQ</version>
+        </program>
     </programs>
+    <!--there is no need for resources below, just keep them there for reference-->
     <resources>
         <resource>
             <name>dbsnp</name>
@@ -122,11 +128,6 @@
             <name>snpEffReference</name>
             <path>not/applicable</path>
             <version>GRCh37.75</version>
-        </resource>
-        <resource>
-            <name>novoalignCSReference</name>
-            <path>/space/data/resources/novoalign/human_g1k_v37_decoy.cnx</path>
-            <version>GRCh37wd</version>
         </resource>
     </resources>
 </globalConfig>

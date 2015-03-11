@@ -73,7 +73,7 @@ class AlignmentUtilsBwa(qscript: QScript, bwaPath: String, numThreads: Int, samt
    * @param	outputDir		output dir to use
    * @param	asIntermidiate	should this be kept of not
    * @param aligner			Aligner to be used. Defaults to BwaMem.
-   * @returns a aligned bam file.
+   * @return a aligned bam file.
    */
   def align(sample: SampleAPI,
             outputDir: File,

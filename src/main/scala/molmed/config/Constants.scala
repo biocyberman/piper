@@ -33,6 +33,8 @@ object Constants {
   val NOVOALIGN = "novoalign"
   val NOVOINDEX = "novoindex"
   val NVOALNCSREF = "novoalignCSReference"
+  val MPIEXECPATH = "mpiexecPath"
+  val TRANSCRIPTOMEPARSER = "SamTranscriptomeParser"
 
 
   val unknown = "unknown"

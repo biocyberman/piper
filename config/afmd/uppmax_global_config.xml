@@ -71,6 +71,16 @@
             <path>/usr/local/bin/novoindex</path>
             <version>3.2</version>
         </program>
+        <program>
+            <name>mpiexecPath</name>
+            <path>/share/apps/mpich2/gnu/bin/mpiexec</path>
+            <version>1.4.1p1</version>
+        </program>
+        <program>
+            <name>SamTranscriptomeParser</name>
+            <path>/space/system/USeq_8.8.9/Apps/SamTranscriptomeParser</path>
+            <version>8.8.9</version>
+        </program>
     </programs>
     <resources>
         <resource>

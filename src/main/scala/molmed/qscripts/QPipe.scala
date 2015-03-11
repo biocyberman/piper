@@ -4,6 +4,7 @@ import molmed.config.FileVersionUtilities.ResourceMap
 import molmed.config.{SolidProgramAndResourceConfig, UppmaxXMLConfiguration}
 import molmed.queue.setup.SampleAPI
 import molmed.report.ReportGenerator
+import molmed.utils.traits._
 import molmed.utils._
 import org.broadinstitute.gatk.queue.QScript
 import org.broadinstitute.gatk.utils.commandline.Hidden
@@ -115,6 +116,9 @@ class QPipe extends QScript
 
   @Argument(doc = "Additional runtime arguments to novoalignCS/MPI, i.e. number of reads to process.", fullName = "trial_arguments", shortName = "trialargs", required = false)
   var trialArguments: String = ""
+
+  @Argument(doc = "The biological nature of the data being processed, wether DNAseq, RNAseq or Methylation. This effect alignment step", fullName = "data_nature", shortName = "dnature", required = false)
+  var dataNature: String = "DNAseq"
 
   /**
    * **************************************************************************
