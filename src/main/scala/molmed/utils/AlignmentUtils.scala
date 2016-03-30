@@ -84,7 +84,7 @@ class TophatAligmentUtils(tophatPath: String, tophatThreads: Int, projectName: O
       ""
 
     // Only do fussion search if it has been defined on the command line.
-    // Since it requires a lot of ram, make sure it requests a fat node.    
+    // Since it requires a lot of ram, make sure it requests a fat node.
     def fusionSearchString = if (fusionSearch) {
       this.jobNativeArgs +:= "-p node -C fat -A " + uppmaxConfig.projId
       this.memoryLimit = Some(48)
@@ -296,14 +296,16 @@ class AlignmentUtils(qscript: QScript, alignerPath: String, numThreads: Int, sam
                      intermediate: Boolean = false) extends SixteenCoreJob {
 
     def sortAndIndex(alignedBam: File): String = " | " + samtoolsPath + " view -Su - | " +
-      samtoolsPath + " sort -@ " + nbrOfThreads + " -m 7G " +
-      " - " + alignedBam.getAbsolutePath().replace(".bam", "") + ";" +
-      samtoolsPath + " index " + alignedBam.getAbsoluteFile()
+    samtoolsPath + " sort -@ " + nbrOfThreads + " -m 7G " +
+        " - " + alignedBam.getAbsolutePath().replace(".bam", "") + ";" +
+        samtoolsPath + " index " + alignedBam.getAbsoluteFile()
 
     @Input(doc = "fastq file with mate 1 to be aligned") var mate1 = fastq1
-    @Input(doc = "fastq file with mate 2 file to be aligned") var mate2 = fastq2
-    @Input(doc = "reference") var ref = reference
-    @Output(doc = "output aligned bam file") var alignedBam = outBam
+      @Input(doc = "fastq file with mate 2 file to be aligned") var mate2 = fastq2
+      @Input(doc = "reference") var ref = reference
+      @Output(doc = "output aligned bam file") var alignedBam = outBam
+      @Output(doc = "output aligned bam index file") var bamIndex = GeneralUtils.swapExt(
+        outBam.getParentFile, outBam, ".bam", ".bam.bai")
 
     // The output from this is a samfile, which can be removed later
     this.isIntermediate = intermediate
@@ -314,11 +316,24 @@ class AlignmentUtils(qscript: QScript, alignerPath: String, numThreads: Int, sam
     else
       " " + mate1 + " "
 
+    <<<<<<< variant A
+
+    >>>>>>> variant B
+
+    ======= end
+    // Enabling pipefail should make sure that this gets a non-zero
+    // exit status should any of the programs in the pipe fail.
     def commandLine =
+      <<<<<<< variant A
+    "set -o pipefail; " +
       alignerPath + " mem -M -t " + nbrOfThreads + " " +
-        " -R " + readGroupInfo + " " +
-        ref + mateString +
-        sortAndIndex(alignedBam)
+      >>>>>>> variant B
+    "set -o pipefail; " +
+      bwaPath + " mem -M -t " + nbrOfThreads + " " +
+      ======= end
+    " -R " + readGroupInfo + " " +
+      ref + mateString +
+      sortAndIndex(alignedBam)
 
     override def jobRunnerJobName = projectName.get + "_bwaMem"
   }
@@ -326,8 +341,8 @@ class AlignmentUtils(qscript: QScript, alignerPath: String, numThreads: Int, sam
   // Perform Smith-Watherman aligment of single end reads
   case class bwa_sw(inFastQ: File, outBam: File, reference: File, intermediate: Boolean = false) extends EightCoreJob {
     @Input(doc = "fastq file to be aligned") var fq = inFastQ
-    @Input(doc = "reference") var ref = reference
-    @Output(doc = "output bam file") var bam = outBam
+      @Input(doc = "reference") var ref = reference
+      @Output(doc = "output bam file") var bam = outBam
 
     // The output from this is a samfile, which can be removed later
     this.isIntermediate = intermediate
@@ -339,7 +354,7 @@ class AlignmentUtils(qscript: QScript, alignerPath: String, numThreads: Int, sam
 
   // Perform aligment of color-space input files in BAM, XSQ format.
   // This expect to work with only one library at a time.
-  // TODO: Check if need support for CSFASTQ format 
+  // TODO: Check if need support for CSFASTQ format
   case class novoalignCS(inputFile: File, outBam: File,
                          reference: File,
                          intermediate: Boolean = false,
@@ -350,8 +365,8 @@ class AlignmentUtils(qscript: QScript, alignerPath: String, numThreads: Int, sam
     logger.info("resourceMap size: " + otherResources.size)
 
     @Input(doc = "input file(s) to be aligned") var input = inputFile
-    @Input(doc = "reference") var ref = reference
-    @Output(doc = "output bam file") var bam = outBam
+      @Input(doc = "reference") var ref = reference
+      @Output(doc = "output bam file") var bam = outBam
 
     @Argument(doc = "path to novosort for sort and index bam files")
     var novosort = getPathFromKey(otherResources, Constants.NOVOSORT)

@@ -98,7 +98,7 @@ object SetupUtils {
 
     projectMetaData.setName(projectName)
     projectMetaData.setPlatform(seqencingPlatform)
-    projectMetaData.setSequenceingcenter(sequencingCenter)
+    projectMetaData.setSequencingcenter(sequencingCenter)
     projectMetaData.setUppmaxprojectid(uppmaxProjectId)
     projectMetaData.setUppmaxqos(uppmaxQoSFlag)
     projectMetaData.setReference(reference.getAbsolutePath())
@@ -366,7 +366,7 @@ object SetupUtils {
       } yield {
 
         val fastqFileRegexp =
-          """^(\w+)_(\w+(?:-\w+)?)_L(\d+)_R(\d)_(\d+)\.fastq\.gz$""".r
+          """(.*)_(\w+(?:-\w+)?)_L(\d+)_R(\d)_001.fastq\.gz$""".r
 
         val sampleName =
           fastqFile.getParentFile().getName().replaceFirst("Sample_", "")

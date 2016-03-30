@@ -2,13 +2,13 @@ package molmed.utils
 
 import java.io.File
 import java.io.PrintWriter
-import scala.annotation.elidable
-import scala.annotation.elidable.ASSERTION
+
 import scala.collection.immutable.Stream.consWrapper
 import scala.io.Source
 import scala.sys.process.Process
+
+import org.broadinstitute.gatk.queue.QScript
 import org.broadinstitute.gatk.queue.extensions.picard.CalculateHsMetrics
-import org.broadinstitute.gatk.queue.extensions.picard.MarkDuplicates
 import org.broadinstitute.gatk.queue.extensions.picard.MergeSamFiles
 import org.broadinstitute.gatk.queue.extensions.picard.RevertSam
 import org.broadinstitute.gatk.queue.extensions.picard.SamToFastq
@@ -16,6 +16,11 @@ import org.broadinstitute.gatk.queue.extensions.picard.SortSam
 import org.broadinstitute.gatk.queue.extensions.picard.ValidateSamFile
 import org.broadinstitute.gatk.queue.function.InProcessFunction
 import org.broadinstitute.gatk.queue.function.ListWriterFunction
+import org.broadinstitute.gatk.queue.util.StringFileConversions
+import org.broadinstitute.gatk.tools.walkers.bqsr.BQSRGatherer
+
+
+import htsjdk.samtools.SAMFileHeader.SortOrder
 import molmed.queue.extensions.RNAQC.RNASeQC
 import molmed.queue.extensions.picard.BuildBamIndex
 import molmed.queue.extensions.picard.CollectTargetedPcrMetrics
@@ -25,9 +30,11 @@ import htsjdk.samtools.SAMFileHeader.SortOrder
 import org.broadinstitute.gatk.queue.extensions.picard.CalculateHsMetrics
 import molmed.queue.setup.SampleAPI
 import molmed.queue.setup.InputSeqFileContainer
+import molmed.queue.extensions.picard.MarkDuplicates
+import molmed.queue.extensions.picard.MarkDuplicatesMetrics
+import molmed.queue.setup.ReadPairContainer
 import molmed.queue.setup.Sample
-import org.broadinstitute.gatk.queue.util.StringFileConversions
-import org.broadinstitute.gatk.queue.QScript
+import molmed.queue.setup.SampleAPI
 
 /**
  * Assorted commandline wappers, mostly for file doing small things link indexing files. See case classes to figure out
@@ -36,26 +43,53 @@ import org.broadinstitute.gatk.queue.QScript
 class GeneralUtils(projectName: Option[String], uppmaxConfig: UppmaxConfig) extends UppmaxJob(uppmaxConfig) with StringFileConversions {
 
   /**
-   * Creates a bam index for a bam file.
-   */
+    * Creates a bam index for a bam file.
+    */
   case class createIndex(@Input bam: File, @Output index: File) extends BuildBamIndex with OneCoreJob {
     this.input = bam
     this.output = index
   }
 
+  abstract class SamtoolsBase(@Argument samtoolsPath: String)
+
   /**
    * Creates a bam index for a bam file.
    */
-  case class samtoolCreateIndex(@Input bam: File, @Output index: File) extends OneCoreJob {
-    def commandLine = "samtools index " + bam + " " + index + "; echo \"ExitCode: \"$?";
+  case class samtoolCreateIndex(@Input bam: File, @Output index: File, @Argument samtoolsPath: String) extends SamtoolsBase(samtoolsPath) with OneCoreJob {
+    def commandLine = samtoolsPath + " index " + bam + " " + index + "; echo \"ExitCode: \"$?";
 
     override def jobRunnerJobName = projectName.get + "_samtools_bam_index"
   }
 
   /**
+   * Get only reads from a bam file mapping to the specified region
+   *
+   * @param bam             The bam to get the reads from
+   * @param outputBam       The bam file to output the reads to
+   * @param region          The region to select (e.g. chr1) note that this must match region in file.
+   * @param asIntermediate  Remove once dependencies has been fullfilled
+   */
+  case class samtoolGetRegion(
+      @Input bam: File,
+      @Output outputBam: File,
+      @Argument region: String,
+      @Argument asIntermediate: Boolean,
+      @Argument samtoolsPath: String) extends SamtoolsBase(samtoolsPath) with OneCoreJob {
+
+    @Output
+    var outputBamIndex: File = GeneralUtils.swapExt(outputBam.getParentFile(), outputBam, ".bam", ".bam.bai")
+
+    def commandLine =
+      samtoolsPath + " view -b " + bam + " " + region + " > " + outputBam + "; " +
+      samtoolsPath + " index " + outputBam
+    override def jobRunnerJobName = projectName.get + "_samtools_get_region"
+    this.isIntermediate = asIntermediate
+  }
+
+  /**
    * Joins the bam file specified to a single bam file.
    */
-  case class joinBams(@Input inBams: Seq[File], @Output outBam: File, asIntermediate: Boolean = false) extends MergeSamFiles with TwoCoreJob {
+  case class joinBams(inBams: Seq[File], outBam: File, asIntermediate: Boolean = false) extends MergeSamFiles with TwoCoreJob {
 
     this.isIntermediate = asIntermediate
 
@@ -68,12 +102,11 @@ class GeneralUtils(projectName: Option[String], uppmaxConfig: UppmaxConfig) exte
 
     override def jobRunnerJobName = projectName.get + "_joinBams"
 
-    this.isIntermediate = false
   }
 
   /**
-   * Writes that paths of the inBams to a file, which one file on each line.
-   */
+    * Writes that paths of the inBams to a file, which one file on each line.
+    */
   case class writeList(inBams: Seq[File], outBamList: File) extends ListWriterFunction {
     this.inputFiles = inBams
     this.listFile = outBamList
@@ -81,8 +114,8 @@ class GeneralUtils(projectName: Option[String], uppmaxConfig: UppmaxConfig) exte
   }
 
   /**
-   * Sorts a bam file.
-   */
+    * Sorts a bam file.
+    */
   case class sortSam(inSam: File, outBam: File, sortOrderP: SortOrder) extends SortSam with OneCoreJob {
     this.input :+= inSam
     this.output = outBam
@@ -91,10 +124,10 @@ class GeneralUtils(projectName: Option[String], uppmaxConfig: UppmaxConfig) exte
   }
 
   /**
-   *
-   * Read trimmer
-   *
-   */
+    *
+    * Read trimmer
+    *
+    */
   def cutSamplesUsingCuteAdapt(qscript: QScript, cutadaptPath: String, sample: SampleAPI, outputDir: String, @Argument syncPath: String = "resources/FixEmptyReads.pl"): SampleAPI = {
     // Standard Illumina adaptors
     val adaptor1 = "AGATCGGAAGAGCACACGTCTGAACTCCAGTCAC"
@@ -103,7 +136,7 @@ class GeneralUtils(projectName: Option[String], uppmaxConfig: UppmaxConfig) exte
     val cutadaptOutputDir = new File(outputDir + "/cutadapt")
     cutadaptOutputDir.mkdirs()
 
-    // Run cutadapt & sync    
+    // Run cutadapt & sync
     def cutAndSyncSample(sample: SampleAPI): SampleAPI = {
       def constructTrimmedName(name: String): String = {
         if (name.endsWith("fastq.gz"))
@@ -132,25 +165,26 @@ class GeneralUtils(projectName: Option[String], uppmaxConfig: UppmaxConfig) exte
   }
 
   /**
-   * Runs cutadapt on a fastqfile and syncs it (adds a N to any reads which are empty after adaptor trimming).
-   */
+    * Runs cutadapt on a fastqfile and syncs it (adds a N to any reads which are empty after adaptor trimming).
+    */
   case class cutadapt(@Input fastq: File, cutFastq: File, @Argument adaptor: String, @Argument cutadaptPath: String, @Argument syncPath: String = "resources/FixEmptyReads.pl") extends OneCoreJob {
     @Output val fastqCut: File = cutFastq
     this.isIntermediate = true
-    // Run cutadapt and sync via perl script by adding N's in all empty reads.  
+    // Run cutadapt and sync via perl script by adding N's in all empty reads.
     def commandLine = cutadaptPath + " -a " + adaptor + " " + fastq + " | perl " + syncPath + " -o " + fastqCut
     override def jobRunnerJobName = projectName.get + "_cutadapt"
   }
 
   /**
-   * Wraps Picard MarkDuplicates
-   */
+    * Wraps Picard MarkDuplicates
+    */
   case class dedup(inBam: File, outBam: File, metricsFile: File, asIntermediate: Boolean = true) extends MarkDuplicates with TwoCoreJob {
 
     this.isIntermediate = asIntermediate
 
     this.input :+= inBam
     this.output = outBam
+    this.outputIndex = GeneralUtils.swapExt(outBam.getParentFile, outBam, ".bam", ".bai")
     this.metrics = metricsFile
 
     // 5 seems to be a good compromise between speed and file size
@@ -162,9 +196,20 @@ class GeneralUtils(projectName: Option[String], uppmaxConfig: UppmaxConfig) exte
     override def jobRunnerJobName = projectName.get + "_dedup"
   }
 
+  case class dedupMetrics(inBam: File, metricsFile: File) extends MarkDuplicatesMetrics with TwoCoreJob {
+
+    this.isIntermediate = false
+    this.input = Seq(inBam)
+    this.metrics = metricsFile
+    // Since we're discarding the ouptut, set the compression level to be low
+    this.compressionLevel = Some(1)
+    this.memoryLimit = Some(14)
+    override def jobRunnerJobName = projectName.get + "_dedup_metrics"
+  }
+
   /**
-   * Wraps Picard ValidateSamFile
-   */
+    * Wraps Picard ValidateSamFile
+    */
   case class validate(inBam: File, outLog: File, reference: File) extends ValidateSamFile with OneCoreJob {
     this.input :+= inBam
     this.output = outLog
@@ -174,8 +219,8 @@ class GeneralUtils(projectName: Option[String], uppmaxConfig: UppmaxConfig) exte
   }
 
   /**
-   * Wraps Picard FixMateInformation
-   */
+    * Wraps Picard FixMateInformation
+    */
   case class fixMatePairs(inBam: Seq[File], outBam: File) extends FixMateInformation with OneCoreJob {
     this.input = inBam
     this.output = outBam
@@ -183,8 +228,8 @@ class GeneralUtils(projectName: Option[String], uppmaxConfig: UppmaxConfig) exte
   }
 
   /**
-   * Wraps Picard RevertSam. Removes aligment information from bam file.
-   */
+    * Wraps Picard RevertSam. Removes aligment information from bam file.
+    */
   case class revert(inBam: File, outBam: File, removeAlignmentInfo: Boolean) extends RevertSam with OneCoreJob {
     this.output = outBam
     this.input :+= inBam
@@ -195,8 +240,8 @@ class GeneralUtils(projectName: Option[String], uppmaxConfig: UppmaxConfig) exte
   }
 
   /**
-   * Wraps SamToFastq. Converts a sam file to a fastq file.
-   */
+    * Wraps SamToFastq. Converts a sam file to a fastq file.
+    */
   case class convertToFastQ(inBam: File, outFQ: File) extends SamToFastq with OneCoreJob {
     this.input :+= inBam
     this.fastq = outFQ
@@ -204,8 +249,8 @@ class GeneralUtils(projectName: Option[String], uppmaxConfig: UppmaxConfig) exte
   }
 
   /**
-   * Wrapper for RNA-SeQC.
-   */
+    * Wrapper for RNA-SeQC.
+    */
   case class RNA_QC(bamfile: File, @Input bamIndex: File, bamSampleName: String, rRNATargetsFile: File, downsampling: Int, referenceFile: File, outDir: File, transcriptFile: File, @Output placeHolder: File, pathRNASeQC: File) extends RNASeQC with ThreeCoreJob {
     //Perform QC on bam files
 
@@ -230,15 +275,15 @@ class GeneralUtils(projectName: Option[String], uppmaxConfig: UppmaxConfig) exte
   }
 
   /**
-   * Run qualimap to get info quality control metrics
-   * @param bam 			file to run qualimap on
-   * @param outputBase 		the folder where the output files will end up
-   * @param logFile 		the path to output the log file to
-   * @param pathToQualimap  path to the qualimap program
-   * @param isHuman			indicate if gc-content should be compared to human distribution or not.
-   * @param intervalFile	Optional interval file in BED or GFF format to
-   * 						output statistics for targeted regions.
-   */
+    * Run qualimap to get info quality control metrics
+    * @param bam 			file to run qualimap on
+    * @param outputBase 		the folder where the output files will end up
+    * @param logFile 		the path to output the log file to
+    * @param pathToQualimap  path to the qualimap program
+    * @param isHuman			indicate if gc-content should be compared to human distribution or not.
+    * @param intervalFile	Optional interval file in BED or GFF format to
+    * 						output statistics for targeted regions.
+    */
   case class qualimapQC(
     @Input bam: File,
     @Output outputBase: File,
@@ -246,7 +291,7 @@ class GeneralUtils(projectName: Option[String], uppmaxConfig: UppmaxConfig) exte
     @Argument pathToQualimap: File,
     @Argument isHuman: Boolean,
     @Argument(required = false) intervalFile: Option[File] = None)
-      extends EightCoreJob {
+      extends SixteenCoreJob {
 
     this.isIntermediate = false
     override def jobRunnerJobName = projectName.get + "_qualimap"
@@ -257,32 +302,32 @@ class GeneralUtils(projectName: Option[String], uppmaxConfig: UppmaxConfig) exte
       else
         ""
 
-    def compareGCString = 
-      if(isHuman)
+    def compareGCString =
+      if (isHuman)
         "--genome-gc-distr HUMAN"
-      else 
+      else
         ""
-        
+
     override def commandLine =
       pathToQualimap + " " +
-        " --java-mem-size=64G " +
+        " --java-mem-size=" + this.memoryLimit.get.toInt.toString + "G " +
         " bamqc " +
         " -bam " + bam.getAbsolutePath() +
         gffString +
         " --paint-chromosome-limits " +
-        " " + compareGCString + " " + 
+        " " + compareGCString + " " +
         " -outdir " + outputBase.getAbsolutePath() + "/" +
-        " -nt 8" +
+        " -nt " + this.coreLimit.toInt.toString +
         " &> " + logFile.getAbsolutePath()
 
   }
 
   /**
-   * InProcessFunction which searches a file tree for files matching metrics.tsv
-   * (the output files from RNA-SeQC) and create a file containing the results
-   * from all the separate runs.
-   *
-   */
+    * InProcessFunction which searches a file tree for files matching metrics.tsv
+    * (the output files from RNA-SeQC) and create a file containing the results
+    * from all the separate runs.
+    *
+    */
   case class createAggregatedMetrics(phs: Seq[File], @Input var outputDir: File, @Output var aggregatedMetricsFile: File) extends InProcessFunction {
 
     @Input
@@ -305,8 +350,8 @@ class GeneralUtils(projectName: Option[String], uppmaxConfig: UppmaxConfig) exte
   }
 
   /**
-   * Run Picards CollectTargetedPcrMetrics
-   */
+    * Run Picards CollectTargetedPcrMetrics
+    */
   case class collectTargetedPCRMetrics(bam: File, generalStatisticsOutput: File, perTargetStat: File,
                                        baitIntervalFile: File, targetIntervalFile: File, ref: File)
       extends CollectTargetedPcrMetrics with OneCoreJob {
@@ -325,8 +370,8 @@ class GeneralUtils(projectName: Option[String], uppmaxConfig: UppmaxConfig) exte
   }
 
   /**
-   * Run Picards CalculateHsMetrics
-   */
+    * Run Picards CalculateHsMetrics
+    */
   case class calculateHsMetrics(@Input bam: File, @Input baitsToUse: Option[File],
                                 @Input targetsToUse: Option[File], @Output outputMetrics: File,
                                 @Input referenceFile: File)
@@ -343,6 +388,24 @@ class GeneralUtils(projectName: Option[String], uppmaxConfig: UppmaxConfig) exte
     override def jobRunnerJobName = projectName.get + "_collectHSMetrics"
 
   }
+
+  /**
+   * Merge BQSR recalibration tables
+   *
+   * @param inRecalFiles Seq of recalibration table files to merge
+   * @param outRecalFile the merged output recalibration table file
+   */
+  case class mergeRecalibrationTables(@Input inRecalFiles: Seq[File], @Output outRecalFile: File, asIntermediate: Boolean = false) extends InProcessFunction {
+    import scala.collection.JavaConverters._
+
+    this.isIntermediate = asIntermediate
+
+    def run() {
+      new BQSRGatherer().gather(inRecalFiles.toList.asJava, outRecalFile)
+    }
+
+  }
+
 }
 
 /**

@@ -94,7 +94,7 @@ class SetupXMLReader(setupXML: File) extends SetupXMLReaderAPI {
   }
 
   def getSequencingCenter(): String =
-    project.getMetadata().getSequenceingcenter()
+    project.getMetadata().getSequencingcenter()
 
   def getUppmaxProjectId(): String =
     project.getMetadata().getUppmaxprojectid()
